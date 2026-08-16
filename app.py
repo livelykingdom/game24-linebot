@@ -16,7 +16,6 @@ handler = WebhookHandler(CHANNEL_SECRET)
 # ตัวแปรสำหรับจดจำสถานะของผู้เล่น
 user_puzzles = {}
 user_scores = {}
-user_langs = {} # เก็บภาษาที่ผู้ใช้เลือก (th หรือ en)
 
 # ฐานข้อมูลโจทย์เกม 24 (404 ข้อ)
 PUZZLES = [
@@ -64,30 +63,30 @@ PUZZLES = [
 ]
 
 def get_rank(score):
-    if score >= 100: return "24 Legend ตำนานแห่งเกม 24"
-    if score >= 90: return "Math Genius อัจฉริยะคณิต"
-    if score >= 80: return "24 Grandmaster ปรมาจารย์เกม 24"
-    if score >= 70: return "Mind King ราชันย์นักคิด"
-    if score >= 60: return "Brain Warrior นักรบสมองเพชร"
-    if score >= 50: return "24 Master เซียนเกม 24"
-    if score >= 40: return "Number Hunter นักล่าเลข 24"
-    if score >= 30: return "Speed Mind นักคิดสายฟ้า"
-    if score >= 20: return "Thinker นักคิดคล่องแคล่ว"
-    if score >= 10: return "Rookie นักคิดหน้าใหม่"
-    return "Beginner ผู้เริ่มต้น"
+    if score >= 100: return ("ตำนานแห่งเกม 24", "24 Legend")
+    if score >= 90: return ("อัจฉริยะคณิต", "Math Genius")
+    if score >= 80: return ("ปรมาจารย์เกม 24", "24 Grandmaster")
+    if score >= 70: return ("ราชันย์นักคิด", "Mind King")
+    if score >= 60: return ("นักรบสมองเพชร", "Brain Warrior")
+    if score >= 50: return ("เซียนเกม 24", "24 Master")
+    if score >= 40: return ("นักล่าเลข 24", "Number Hunter")
+    if score >= 30: return ("นักคิดสายฟ้า", "Speed Mind")
+    if score >= 20: return ("นักคิดคล่องแคล่ว", "Thinker")
+    if score >= 10: return ("นักคิดหน้าใหม่", "Rookie")
+    return ("ผู้เริ่มต้น", "Beginner")
 
 def check_level_up(score):
     ranks = {
-        10: "Rookie นักคิดหน้าใหม่",
-        20: "Thinker นักคิดคล่องแคล่ว",
-        30: "Speed Mind นักคิดสายฟ้า",
-        40: "Number Hunter นักล่าเลข 24",
-        50: "24 Master เซียนเกม 24",
-        60: "Brain Warrior นักรบสมองเพชร",
-        70: "Mind King ราชันย์นักคิด",
-        80: "24 Grandmaster ปรมาจารย์เกม 24",
-        90: "Math Genius อัจฉริยะคณิต",
-        100: "24 Legend ตำนานแห่งเกม 24"
+        10: ("นักคิดหน้าใหม่", "Rookie"),
+        20: ("นักคิดคล่องแคล่ว", "Thinker"),
+        30: ("นักคิดสายฟ้า", "Speed Mind"),
+        40: ("นักล่าเลข 24", "Number Hunter"),
+        50: ("เซียนเกม 24", "24 Master"),
+        60: ("นักรบสมองเพชร", "Brain Warrior"),
+        70: ("ราชันย์นักคิด", "Mind King"),
+        80: ("ปรมาจารย์เกม 24", "24 Grandmaster"),
+        90: ("อัจฉริยะคณิต", "Math Genius"),
+        100: ("ตำนานแห่งเกม 24", "24 Legend")
     }
     return ranks.get(score, None)
 
@@ -111,22 +110,17 @@ def handle_message(event):
     if user_id not in user_scores:
         user_scores[user_id] = 0
 
-    # ตรวจจับภาษาที่ผู้ใช้ถนัดจากคำสั่ง
-    if text_lower in ["ขอโจทย์", "ยอมแพ้", "คะแนน"]:
-        user_langs[user_id] = 'th'
-    elif text_lower in ["puzzle", "play", "give up", "skip", "score"]:
-        user_langs[user_id] = 'en'
-        
-    lang = user_langs.get(user_id, 'th')
-    current_rank = get_rank(user_scores[user_id])
+    rank_th, rank_en = get_rank(user_scores[user_id])
 
     # 1. เช็กคะแนน (Score)
     if text_lower in ["คะแนน", "score"]:
         score = user_scores[user_id]
-        if lang == 'th':
-            reply = f"🏆 คะแนนสะสม: {score} คะแนน\n🏅 ยศปัจจุบัน: {current_rank}\n\nพิมพ์ 'ขอโจทย์' เพื่อเล่นต่อได้เลยจ้า!"
-        else:
-            reply = f"🏆 Your Score: {score}\n🏅 Current Rank: {current_rank}\n\nType 'puzzle' to continue!"
+        reply = (f"🏆 คะแนนสะสม: {score} คะแนน\n"
+                 f"🏅 ระดับปัจจุบัน: {rank_th}\n"
+                 f"พิมพ์ 'ขอโจทย์' เพื่อเล่นต่อได้เลยจ้า!\n\n"
+                 f"🏆 Your Score: {score}\n"
+                 f"🏅 Current Rank: {rank_en}\n"
+                 f"Type 'puzzle' to continue!")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
@@ -136,15 +130,14 @@ def handle_message(event):
         user_puzzles[user_id] = puzzle
         nums_str = " ".join(map(str, puzzle))
         
-        if lang == 'th':
-            reply = (f"โจทย์มาแล้วจ้า! 🎉\nเลขของคุณคือ: {nums_str}\n\n"
-                     f"พิมพ์สมการที่ได้ 24 ตอบกลับมาได้เลยค่ะ (เช่น (8+4)*(4-2))\n"
-                     f"พิมพ์ 'ยอมแพ้' เพื่อพักก่อน หรือพิมพ์ 'คะแนน' เพื่อดูแต้ม")
-        else:
-            reply = (f"Here is your puzzle! 🎉\nNumbers: {nums_str}\n\n"
-                     f"Type the equation to get 24 (e.g., (8+4)*(4-2))\n"
-                     f"Type 'give up' to skip, or 'score' to check points.")
-                     
+        reply = (f"โจทย์มาแล้วจ้า! 🎉\n"
+                 f"เลขของคุณคือ: {nums_str}\n\n"
+                 f"พิมพ์สมการที่ได้ 24 ตอบกลับมาได้เลยค่ะ (เช่น (8+4)*(4-2))\n"
+                 f"พิมพ์ 'ยอมแพ้' เพื่อพักก่อน หรือพิมพ์ 'คะแนน' เพื่อดูแต้ม\n\n"
+                 f"Here is your puzzle! 🎉\n"
+                 f"Numbers: {nums_str}\n\n"
+                 f"Type the equation to get 24 (e.g., (8+4)*(4-2))\n"
+                 f"Type 'give up' to skip, or 'score' to check points.")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
@@ -153,11 +146,8 @@ def handle_message(event):
         if user_id in user_puzzles:
             del user_puzzles[user_id]
             
-        if lang == 'th':
-            reply = "พักก่อนเนอะ ✌️ ถ้าพร้อมประลองความไวเมื่อไหร่ พิมพ์ 'ขอโจทย์' มาได้เลยนะคะ!"
-        else:
-            reply = "Taking a break! ✌️ When you're ready to play again, just type 'puzzle'!"
-            
+        reply = ("พักก่อนเนอะ ✌️ ถ้าพร้อมประลองความไวเมื่อไหร่ พิมพ์ 'ขอโจทย์' มาได้เลยนะคะ!\n\n"
+                 "Taking a break! ✌️ When you're ready to play again, just type 'puzzle'!")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
@@ -166,7 +156,8 @@ def handle_message(event):
         puzzle = user_puzzles[user_id]
         
         if not re.match(r'^[0-9+\-*/() \.]+$', text):
-            msg = "❌ พิมพ์เฉพาะตัวเลขและเครื่องหมาย +, -, *, /, ( ) เท่านั้นนะคะ" if lang == 'th' else "❌ Please use only numbers and math symbols +, -, *, /, ( )"
+            msg = ("❌ พิมพ์เฉพาะตัวเลขและเครื่องหมาย +, -, *, /, ( ) เท่านั้นนะคะ\n\n"
+                   "❌ Please use only numbers and math symbols +, -, *, /, ( )")
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text=msg))
             return
 
@@ -174,7 +165,8 @@ def handle_message(event):
         sorted_puzzle = sorted(puzzle)
         
         if nums_in_text != sorted_puzzle:
-            msg = f"❌ ใช้ตัวเลขไม่ตรงกับโจทย์ค่ะ\nโจทย์ข้อนี้คือ: {' '.join(map(str, puzzle))}" if lang == 'th' else f"❌ You didn't use the correct numbers.\nYour puzzle is: {' '.join(map(str, puzzle))}"
+            msg = (f"❌ ใช้ตัวเลขไม่ตรงกับโจทย์ค่ะ\nโจทย์ข้อนี้คือ: {' '.join(map(str, puzzle))}\n\n"
+                   f"❌ You didn't use the correct numbers.\nYour puzzle is: {' '.join(map(str, puzzle))}")
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text=msg))
             return
 
@@ -184,42 +176,55 @@ def handle_message(event):
                 # ตอบถูก -> บวกคะแนน
                 user_scores[user_id] += 1
                 current_score = user_scores[user_id]
-                rank_name = get_rank(current_score)
-                level_up_name = check_level_up(current_score)
+                rank_th, rank_en = get_rank(current_score)
+                level_up = check_level_up(current_score)
                 
                 # สุ่มข้อใหม่ทันที
                 new_puzzle = random.choice(PUZZLES)
                 user_puzzles[user_id] = new_puzzle
                 nums_str = " ".join(map(str, new_puzzle))
                 
-                if lang == 'th':
-                    reply = f"✨ ถูกต้องค่ะ! เก่งมาก ✨\n🏆 คะแนน: {current_score} | 🏅 ยศ: {rank_name}\n"
-                    if level_up_name:
-                        reply += f"🎉 ยินดีด้วย! เลื่อนขั้นเป็นแร้งค์ [ {level_up_name} ] แล้ว! 🎉\n"
-                    reply += f"\nลุยกันต่อเลย! เลขข้อต่อไปคือ: {nums_str}\n(พิมพ์สมการเหมือนเดิม หรือพิมพ์ 'ยอมแพ้' เพื่อพักก่อนนะคะ)"
-                else:
-                    reply = f"✨ Correct! Great job ✨\n🏆 Score: {current_score} | 🏅 Rank: {rank_name}\n"
-                    if level_up_name:
-                        reply += f"🎉 Congratulations! You've ranked up to [ {level_up_name} ]! 🎉\n"
-                    reply += f"\nNext puzzle: {nums_str}\n(Type your equation, or 'give up' to take a break)"
+                # สร้างข้อความตอบกลับ
+                reply = ""
+                if level_up:
+                    lvl_th, lvl_en = level_up
+                    reply += (f"🎉 ยินดีด้วย! เลื่อนขั้นเป็นระดับ [ {lvl_th} ] แล้ว! 🎉\n"
+                              f"🎉 Congratulations! You've ranked up to [ {lvl_en} ]! 🎉\n\n")
+
+                reply += (f"✨ ถูกต้อง! เก่งมาก ✨\n\n"
+                          f"🏆 คะแนน: {current_score} | 🏅 ระดับ: {rank_th}\n"
+                          f"โจทย์ถัดไป: {nums_str}\n\n"
+                          f"(พิมพ์สมการของคุณ หรือ พิมพ์ “ยอมแพ้” เพื่อพักสักครู่)\n\n"
+                          f"✨ Correct! Great job! ✨\n\n"
+                          f"🏆 Score: {current_score} | 🏅 Rank: {rank_en}\n"
+                          f"Next puzzle: {nums_str}\n\n"
+                          f"(Type your equation, or type “give up” to take a break)")
                     
             else:
-                reply = f"😅 ยังไม่ถูกจ้า ผลลัพธ์ที่ได้คือ {result} ลองพยายามใหม่นะ!" if lang == 'th' else f"😅 Not quite! Your result is {result}. Try again!"
+                reply = (f"😅 ยังไม่ถูกจ้า ผลลัพธ์ที่ได้คือ {result} ลองพยายามใหม่นะ!\n\n"
+                         f"😅 Not quite! Your result is {result}. Try again!")
                 
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
             
         except ZeroDivisionError:
-            msg = "❌ ระวังด้วยจ้า ห้ามหารด้วยศูนย์นะ ลองใหม่ๆ" if lang == 'th' else "❌ Be careful, division by zero is not allowed. Try again!"
+            msg = ("❌ ระวังด้วยจ้า ห้ามหารด้วยศูนย์นะ ลองใหม่ๆ\n\n"
+                   "❌ Be careful, division by zero is not allowed. Try again!")
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text=msg))
         except Exception:
-            msg = "❌ รูปแบบสมการไม่ถูกต้องค่ะ ลองเช็กการใส่วงเล็บอีกครั้งนะคะ" if lang == 'th' else "❌ Invalid equation format. Please check your parentheses and symbols."
+            msg = ("❌ รูปแบบสมการไม่ถูกต้องค่ะ ลองเช็กการใส่วงเล็บอีกครั้งนะคะ\n\n"
+                   "❌ Invalid equation format. Please check your parentheses and symbols.")
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text=msg))
             
     else:
-        # 5. กรณีพิมพ์คำอื่นๆ นอกเหนือจากคำสั่ง
-        reply = ("พิมพ์ 'ขอโจทย์' เพื่อเริ่มเล่นเกม 24 หรือพิมพ์ 'คะแนน' เพื่อดูแต้มสะสมได้เลยค่ะ 🧮\n"
-                 "(Type 'puzzle' to play, or 'score' to check your rank!)")
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
+        # 5. กรณีไม่ได้อยู่ในเกม แต่เผลอพิมพ์สมการเข้ามา (จับผิดตอนเซิร์ฟเวอร์เพิ่งตื่นนอน)
+        if re.match(r'^[0-9+\-*/() \.]+$', text) and any(c.isdigit() for c in text):
+            msg = ("เซิร์ฟเวอร์เพิ่งพักสายตาไปเมื่อกี้ บอทเลยลืมโจทย์ข้อเดิมไปแล้วค่ะ 😅 รบกวนพิมพ์ 'ขอโจทย์' เพื่อรับเลขชุดใหม่นะคะ!\n\n"
+                   "The server just took a nap and forgot your puzzle 😅 Please type 'puzzle' to get a new one!")
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text=msg))
+        else:
+            reply = ("พิมพ์ 'ขอโจทย์' เพื่อเริ่มเล่นเกม 24 หรือพิมพ์ 'คะแนน' เพื่อดูแต้มสะสมได้เลยค่ะ 🧮\n\n"
+                     "Type 'puzzle' to play, or 'score' to check your rank!")
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
 
 if __name__ == "__main__":
     app.run(port=5000)
