@@ -119,14 +119,14 @@ def get_next_rank(score):
 def get_progress_text(score):
     next_rank = get_next_rank(score)
     if not next_rank:
-        return "👑 คุณขึ้นถึงระดับสูงสุดแล้วนะคะ!"
+        return "👑 คุณขึ้นถึงระดับสูงสุดแล้วนะคะ! (You've reached the highest rank!)"
 
-    next_score, next_th, _ = next_rank
+    next_score, next_th, next_en = next_rank
     remaining = next_score - score
 
     return (
-        f"📈 อีก {remaining} คะแนน "
-        f"จะเลื่อนขั้นเป็น «{next_th}» นะคะ"
+        f"📈 อีก {remaining} คะแนน จะเลื่อนขั้นเป็น «{next_th}»\n"
+        f"📈 {remaining} more points to «{next_en}»"
     )
 
 
@@ -158,10 +158,6 @@ difficulty_buckets = {
 
 @lru_cache(maxsize=None)
 def count_solutions(values):
-    """
-    นับจำนวนวิธีที่สามารถทำให้ได้ 24
-    โดยอนุญาตเฉพาะผลลัพธ์ที่เป็นจำนวนเต็มและไม่ติดลบ
-    """
     values = tuple(sorted(values))
     if len(values) == 1:
         return 1 if values[0] == 24 else 0
@@ -211,9 +207,7 @@ def build_difficulty_buckets():
         score = count_solutions(tuple(puzzle))
         puzzle_scores.append((puzzle, score))
 
-    # โจทย์ที่มีหลายวิธีแก้ = โดยทั่วไปง่ายกว่า
     puzzle_scores.sort(key=lambda x: x[1], reverse=True)
-
     total = len(puzzle_scores)
     bucket_size = max(1, total // 5)
 
@@ -362,54 +356,14 @@ def register_activity(player):
 # =========================================================
 
 BADGES = [
-    {
-        "id": "first_correct",
-        "icon": "🌟",
-        "name": "นักคิดคนแรก",
-        "condition": lambda p: p["correct_total"] >= 1
-    },
-    {
-        "id": "combo_5",
-        "icon": "🔥",
-        "name": "ไฟแรง Combo x5",
-        "condition": lambda p: p["best_combo"] >= 5
-    },
-    {
-        "id": "daily_5",
-        "icon": "🎯",
-        "name": "ภารกิจประจำวัน",
-        "condition": lambda p: p["daily_correct"] >= 5
-    },
-    {
-        "id": "score_10",
-        "icon": "🏅",
-        "name": "นักคิดหน้าใหม่",
-        "condition": lambda p: p["score"] >= 10
-    },
-    {
-        "id": "score_50",
-        "icon": "💎",
-        "name": "เซียนเกม 24",
-        "condition": lambda p: p["score"] >= 50
-    },
-    {
-        "id": "score_100",
-        "icon": "👑",
-        "name": "ตำนานแห่งเกม 24",
-        "condition": lambda p: p["score"] >= 100
-    },
-    {
-        "id": "streak_3",
-        "icon": "🔥",
-        "name": "นักสู้ 3 วัน",
-        "condition": lambda p: p["best_streak"] >= 3
-    },
-    {
-        "id": "streak_7",
-        "icon": "🌟",
-        "name": "7-Day Champion",
-        "condition": lambda p: p["best_streak"] >= 7
-    }
+    {"id": "first_correct", "icon": "🌟", "name": "นักคิดคนแรก (First Thinker)", "condition": lambda p: p["correct_total"] >= 1},
+    {"id": "combo_5", "icon": "🔥", "name": "ไฟแรง Combo x5 (On Fire x5)", "condition": lambda p: p["best_combo"] >= 5},
+    {"id": "daily_5", "icon": "🎯", "name": "ภารกิจประจำวัน (Daily Achiever)", "condition": lambda p: p["daily_correct"] >= 5},
+    {"id": "score_10", "icon": "🏅", "name": "นักคิดหน้าใหม่ (Rookie)", "condition": lambda p: p["score"] >= 10},
+    {"id": "score_50", "icon": "💎", "name": "เซียนเกม 24 (24 Master)", "condition": lambda p: p["score"] >= 50},
+    {"id": "score_100", "icon": "👑", "name": "ตำนานแห่งเกม 24 (24 Legend)", "condition": lambda p: p["score"] >= 100},
+    {"id": "streak_3", "icon": "🔥", "name": "นักสู้ 3 วัน (3-Day Streak)", "condition": lambda p: p["best_streak"] >= 3},
+    {"id": "streak_7", "icon": "🌟", "name": "7-Day Champion", "condition": lambda p: p["best_streak"] >= 7}
 ]
 
 
@@ -430,7 +384,7 @@ def get_badge_text(player):
         if badge["id"] in player["badges"]:
             unlocked.append(f'{badge["icon"]} {badge["name"]}')
     if not unlocked:
-        return "ยังไม่มีเหรียญนะคะ เล่นต่ออีกนิด เดี๋ยวก็ได้เหรียญแรกแล้วค่ะ 🌟"
+        return "ยังไม่มีเหรียญ (No badges yet) 🌟\nเล่นต่ออีกนิดเดี๋ยวก็ได้แล้วค่ะ (Keep playing!)"
     return "\n".join(unlocked)
 
 
@@ -439,25 +393,25 @@ def get_badge_text(player):
 # =========================================================
 
 CORRECT_MESSAGES = [
-    "✨ ถูกต้องค่ะ! เก่งมากเลยนะคะ",
-    "🌟 เยี่ยมมากค่ะ! สมองไวมากเลย",
-    "🎯 แม่นมากค่ะ! จับทางโจทย์ได้เก่งจริง ๆ",
-    "🧠 เก่งมากนะคะ! คิดได้ยอดเยี่ยมเลย",
-    "🔥 สุดยอดค่ะ! วันนี้สมองกำลังร้อนแรงเลย",
-    "👏 ถูกต้องค่ะ! ค่อย ๆ เก่งขึ้นทุกข้อเลยนะคะ",
-    "🚀 เก่งมากค่ะ! ไปต่อกันอีกข้อเลยนะคะ",
-    "💡 คิดได้เฉียบมากค่ะ!",
-    "🏆 เยี่ยมเลยค่ะ! อีกนิดเดียวก็ขึ้น Rank ใหม่แล้วนะคะ",
-    "🌈 ทำได้แล้วค่ะ! อย่าเพิ่งหยุดนะคะ"
+    "✨ ถูกต้องค่ะ! เก่งมากเลยนะคะ\n✨ Correct! Great job!",
+    "🌟 เยี่ยมมากค่ะ! สมองไวมากเลย\n🌟 Excellent! Your mind is so fast!",
+    "🎯 แม่นมากค่ะ! จับทางโจทย์ได้เก่งจริง ๆ\n🎯 Spot on! You really got the hang of it!",
+    "🧠 เก่งมากนะคะ! คิดได้ยอดเยี่ยมเลย\n🧠 Brilliant! That was smart!",
+    "🔥 สุดยอดค่ะ! วันนี้สมองกำลังร้อนแรงเลย\n🔥 Awesome! You're on fire today!",
+    "👏 ถูกต้องค่ะ! ค่อย ๆ เก่งขึ้นทุกข้อเลยนะคะ\n👏 Correct! Getting better every puzzle!",
+    "🚀 เก่งมากค่ะ! ไปต่อกันอีกข้อเลยนะคะ\n🚀 Great! Let's move to the next one!",
+    "💡 คิดได้เฉียบมากค่ะ!\n💡 Very sharp thinking!",
+    "🏆 เยี่ยมเลยค่ะ! ดันคะแนนขึ้นไปอีกนะคะ\n🏆 Wonderful! Keep pushing that score up!",
+    "🌈 ทำได้แล้วค่ะ! อย่าเพิ่งหยุดนะคะ\n🌈 You did it! Don't stop now!"
 ]
 
 WRONG_MESSAGES = [
-    "💪 ยังไม่ใช่คำตอบนี้นะคะ แต่ไม่เป็นไร ลองใหม่อีกครั้งค่ะ",
-    "🧠 เกือบแล้วค่ะ! ลองจัดกลุ่มตัวเลขใหม่ดูนะคะ",
-    "🌱 ไม่เป็นไรเลยค่ะ ความผิดพลาดก็เป็นส่วนหนึ่งของการฝึกนะคะ",
-    "✨ ลองมองโจทย์อีกมุมหนึ่งดูนะคะ ใกล้มากแล้วค่ะ",
-    "💡 ยังมีทางอื่นอยู่นะคะ ลองเปลี่ยนเครื่องหมายดูค่ะ",
-    "👏 อย่าเพิ่งยอมแพ้นะคะ นักคิดเก่ง ๆ ก็ต้องลองหลายทางค่ะ"
+    "💪 ยังไม่ใช่คำตอบนี้นะคะ ลองใหม่อีกครั้งค่ะ\n💪 Not quite, try again!",
+    "🧠 เกือบแล้วค่ะ! ลองจัดกลุ่มตัวเลขใหม่ดูนะคะ\n🧠 Almost! Try grouping the numbers differently.",
+    "🌱 ไม่เป็นไรเลยค่ะ ลองคิดอีกมุมดูนะคะ\n🌱 It's okay, try looking from another angle.",
+    "✨ ใกล้ความจริงแล้วค่ะ ลองสลับเครื่องหมายดูนะคะ\n✨ So close! Try swapping operators.",
+    "💡 ยังมีทางอื่นอยู่นะคะ สู้ๆ ค่ะ\n💡 There's another way. Keep going!",
+    "👏 อย่าเพิ่งยอมแพ้นะคะ ลองใหม่อีกนิดค่ะ\n👏 Don't give up, give it another shot!"
 ]
 
 
@@ -560,26 +514,16 @@ def calculate_combo_bonus(combo):
 def format_stats(player):
     rank_th, rank_en = get_rank(player["score"])
     return (
-        f"🏆 คะแนนสะสม: {player['score']} คะแนน\n"
-        f"🏅 ระดับ: {rank_th}\n"
-        f"🔥 Combo สูงสุด: x{player['best_combo']}\n"
-        f"📅 ภารกิจวันนี้: {player['daily_correct']}/5 ข้อ\n"
-        f"🔥 Streak: {player['streak']} วัน\n"
-        f"⭐ Personal Best วันนี้: {player['personal_best_daily_score']} คะแนน\n"
-        f"🎖️ เหรียญ: {len(player['badges'])}/{len(BADGES)}\n\n"
-        f"{get_progress_text(player['score'])}"
-    )
-
-
-def format_stats_english(player):
-    _, rank_en = get_rank(player["score"])
-    return (
-        f"🏆 Score: {player['score']}\n"
-        f"🏅 Rank: {rank_en}\n"
-        f"🔥 Best Combo: x{player['best_combo']}\n"
-        f"📅 Daily Mission: {player['daily_correct']}/5\n"
-        f"🔥 Streak: {player['streak']} days\n"
+        f"🏆 คะแนนสะสม (Score): {player['score']}\n"
+        f"🏅 ระดับ (Rank): {rank_th} ({rank_en})\n"
+        f"🔥 Combo สูงสุด (Best Combo): x{player['best_combo']}\n"
+        f"📅 ภารกิจวันนี้ (Daily Mission): {player['daily_correct']}/5\n"
+        f"🔥 Streak: {player['streak']} วัน (days)\n"
         f"⭐ Personal Best: {player['personal_best_daily_score']}\n"
+        f"🎖️ เหรียญ (Badges): {len(player['badges'])}/{len(BADGES)}\n\n"
+        f"{get_progress_text(player['score'])}\n\n"
+        f"พิมพ์ 'ขอโจทย์' เพื่อเล่นต่อได้เลยค่ะ (Type 'puzzle' to continue)\n"
+        f"พิมพ์ 'เหรียญ' เพื่อดูเหรียญที่ได้ (Type 'badges' to see your badges)"
     )
 
 
@@ -590,19 +534,15 @@ def format_puzzle_message(puzzle, player):
     rank_th, rank_en = get_rank(player["score"])
 
     return (
-        f"🧩 โจทย์มาแล้วค่ะ!\n"
-        f"เลขของคุณคือ: {nums}\n\n"
-        f"🎯 ระดับโจทย์: {difficulty_en} ({difficulty_th})\n"
-        f"🏅 Rank: {rank_th}\n"
+        f"🧩 โจทย์มาแล้วค่ะ! (Here is your puzzle!)\n"
+        f"เลขของคุณคือ (Numbers): {nums}\n\n"
+        f"🎯 ระดับ (Difficulty): {difficulty_th} ({difficulty_en})\n"
+        f"🏅 Rank: {rank_th} ({rank_en})\n"
         f"🔥 Combo: x{player['combo']}\n\n"
-        f"นำเลขทั้ง 4 ตัวมาคำนวณให้ได้ 24 นะคะ\n"
-        f"พิมพ์สมการตอบกลับมาได้เลยค่ะ\n\n"
-        f"💡 อยากพัก พิมพ์ “ยอมแพ้” ได้นะคะ\n\n"
-        f"🧩 Here is your puzzle!\n"
-        f"Numbers: {nums}\n"
-        f"🎯 Difficulty: {difficulty_en}\n\n"
-        f"Type your equation to make 24.\n"
-        f"Type “give up” if you need a break."
+        f"พิมพ์สมการตอบกลับมาได้เลยค่ะ\n"
+        f"(Type your equation to make 24.)\n\n"
+        f"💡 อยากพัก พิมพ์ “ยอมแพ้” ได้นะคะ\n"
+        f"(Type “give up” to take a break.)"
     )
 
 
@@ -649,12 +589,7 @@ def handle_message(event):
     # =====================================================
     if text_lower in ["คะแนน", "score"]:
         save_data()
-        reply = (
-            f"{format_stats(player)}\n\n"
-            f"🇬🇧 {format_stats_english(player)}\n"
-            f"\nType 'badges' to see your badges."
-        )
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=format_stats(player)))
         return
 
     # =====================================================
@@ -663,9 +598,10 @@ def handle_message(event):
     if text_lower in ["เหรียญ", "badge", "badges"]:
         save_data()
         reply = (
-            f"🎖️ เหรียญความสำเร็จของคุณ\n\n"
+            f"🎖️ เหรียญความสำเร็จของคุณ (Your Badges)\n\n"
             f"{get_badge_text(player)}\n\n"
-            f"สะสมต่อไปนะคะ ยังมีเหรียญรอปลดล็อกอีกค่ะ!"
+            f"สะสมต่อไปนะคะ ยังมีเหรียญรอปลดล็อกอีกค่ะ!\n"
+            f"(Keep playing to unlock more!)"
         )
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
@@ -692,10 +628,11 @@ def handle_message(event):
         player["combo"] = 0
         save_data()
         reply = (
-            "พักก่อนได้เลยนะคะ 🌷\n"
-            "ไม่เป็นไรเลยค่ะ พรุ่งนี้หรือเมื่อพร้อมแล้ว กลับมาประลองใหม่ได้เสมอนะคะ\n\n"
-            "💡 ความเก่งเกิดจากการฝึกทีละนิดค่ะ\n\n"
-            "พิมพ์ “ขอโจทย์” เพื่อเล่นต่อได้เลยค่ะ"
+            "พักก่อนได้เลยนะคะ 🌷 (Take a break!)\n"
+            "ไม่เป็นไรเลยค่ะ พรุ่งนี้หรือเมื่อพร้อมแล้ว กลับมาประลองใหม่ได้เสมอนะคะ\n"
+            "(You can always try again later.)\n\n"
+            "พิมพ์ “ขอโจทย์” เพื่อเล่นต่อได้เลยค่ะ\n"
+            "(Type “puzzle” to play again.)"
         )
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
@@ -705,12 +642,10 @@ def handle_message(event):
     # =====================================================
     if player["current_puzzle"] is None:
         reply = (
-            "สวัสดีค่ะ 🌟\n"
-            "พร้อมลับสมองกันหรือยังคะ?\n\n"
+            "สวัสดีค่ะ 🌟 พร้อมลับสมองกันหรือยังคะ?\n\n"
             "พิมพ์ “ขอโจทย์” เพื่อเริ่มเล่นเกม 24 ค่ะ\n"
             "พิมพ์ “คะแนน” เพื่อดู Rank และคะแนนนะคะ\n"
             "พิมพ์ “เหรียญ” เพื่อดูเหรียญที่สะสมค่ะ\n\n"
-            "🇬🇧 English version:\n"
             "Hello! 🌟 Ready to sharpen your mind?\n\n"
             "Type “puzzle” to start playing Game 24.\n"
             "Type “score” to check your Rank and points.\n"
@@ -746,32 +681,30 @@ def handle_message(event):
             if player["round_correct"] == 5:
                 milestone_bonus += 2
                 milestone_message = (
-                    "\n\n🎉 จบด่านย่อย 5 ข้อแล้วค่ะ!\n"
-                    "🎁 โบนัสพิเศษ +2 คะแนนนะคะ"
+                    "\n\n🎉 จบด่านย่อย 5 ข้อ! (5 Puzzles Cleared!)\n"
+                    "🎁 โบนัส (Bonus): +2"
                 )
             elif player["round_correct"] == 10:
                 milestone_bonus += 5
                 milestone_message = (
-                    "\n\n🏆 จบด่าน 10 ข้อแล้วค่ะ!\n"
-                    "🎁 โบนัสพิเศษ +5 คะแนนนะคะ\n"
-                    "🚀 ไปต่อด่านใหม่กันเลยค่ะ!"
+                    "\n\n🏆 จบด่าน 10 ข้อ! (10 Puzzles Cleared!)\n"
+                    "🎁 โบนัสพิเศษ (Special Bonus): +5\n"
+                    "🚀 ไปต่อด่านใหม่กันเลยค่ะ! (Next stage!)"
                 )
                 player["round_correct"] = 0
 
             if player["daily_correct"] == 5:
                 milestone_bonus += 2
                 milestone_message += (
-                    "\n\n🎯 ภารกิจวันนี้สำเร็จแล้วค่ะ!\n"
-                    "เก่งมากนะคะ ตอบถูกครบ 5 ข้อแล้ว\n"
-                    "🎁 โบนัสภารกิจ +2 คะแนน"
+                    "\n\n🎯 ภารกิจวันนี้สำเร็จ! (Daily Mission Completed!)\n"
+                    "🎁 โบนัส (Bonus): +2"
                 )
             
             if player["daily_correct"] == 10:
                 milestone_bonus += 5
                 milestone_message += (
-                    "\n\n🌟 วันนี้สุดยอดมากค่ะ!\n"
-                    "ตอบถูกครบ 10 ข้อแล้วนะคะ\n"
-                    "🎁 โบนัสพิเศษ +5 คะแนน"
+                    "\n\n🌟 วันนี้สุดยอดมากค่ะ! (You are amazing today!)\n"
+                    "🎁 โบนัส (Bonus): +5"
                 )
 
             total_gain = base_score + combo_bonus + milestone_bonus
@@ -796,22 +729,21 @@ def handle_message(event):
             combo_text = ""
             if combo_bonus > 0:
                 combo_text = (
-                    f"\n🔥 COMBO x{player['combo']}!"
-                    f" โบนัส +{combo_bonus} คะแนนค่ะ"
+                    f"\n🔥 COMBO x{player['combo']}! "
+                    f"โบนัส (Bonus): +{combo_bonus}"
                 )
 
             rank_text = ""
             if rank_up:
                 rank_text = (
-                    f"\n\n🎉 ยินดีด้วยนะคะ!\n"
-                    f"เลื่อนขั้นเป็น 🏅 {rank_th} แล้วค่ะ!\n"
-                    f"🇬🇧 {rank_en}"
+                    f"\n\n🎉 ยินดีด้วยนะคะ! (Congratulations!)\n"
+                    f"เลื่อนขั้นเป็น (Rank up to) 🏅 {rank_th} ({rank_en})!"
                 )
 
             badge_text = ""
             if new_badges:
                 badge_text = (
-                    "\n\n🎖️ ปลดล็อกเหรียญใหม่ค่ะ!\n"
+                    "\n\n🎖️ ปลดล็อกเหรียญใหม่! (New Badge Unlocked!)\n"
                     + "\n".join(new_badges)
                 )
 
@@ -819,21 +751,21 @@ def handle_message(event):
 
             reply = (
                 f"{encouragement}\n\n"
-                f"✅ คำตอบถูกต้องค่ะ!\n"
-                f"🎁 ได้คะแนน +{total_gain}\n"
-                f"🏆 คะแนนสะสม: {player['score']}\n"
-                f"🏅 ระดับ: {rank_th}\n"
+                f"✅ คำตอบถูกต้อง! (Correct!)\n"
+                f"🎁 ได้คะแนน (Points): +{total_gain}\n"
+                f"🏆 คะแนนสะสม (Score): {player['score']}\n"
+                f"🏅 ระดับ (Rank): {rank_th} ({rank_en})\n"
                 f"🔥 Combo: x{player['combo']}\n"
-                f"📅 ภารกิจวันนี้: {player['daily_correct']}/5\n"
-                f"🔥 Streak: {player['streak']} วัน\n"
+                f"📅 ภารกิจวันนี้ (Daily Mission): {player['daily_correct']}/5\n"
+                f"🔥 Streak: {player['streak']} วัน (days)\n\n"
                 f"{progress}"
                 f"{combo_text}"
                 f"{milestone_message}"
                 f"{rank_text}"
-                f"{badge_text}"
-                f"\n\n"
-                f"🧩 โจทย์ถัดไป: {' '.join(map(str, new_puzzle))}\n\n"
-                f"พิมพ์สมการมาได้เลยนะคะ หรือพิมพ์ “ยอมแพ้” เพื่อพักค่ะ"
+                f"{badge_text}\n\n"
+                f"🧩 โจทย์ถัดไป (Next puzzle): {' '.join(map(str, new_puzzle))}\n\n"
+                f"พิมพ์สมการมาได้เลยนะคะ หรือพิมพ์ “ยอมแพ้” เพื่อพักค่ะ\n"
+                f"(Type your equation, or type “give up” to take a break.)"
             )
 
             save_data()
@@ -847,9 +779,9 @@ def handle_message(event):
         player["combo"] = 0
         save_data()
         reply = (
-            "😅 ข้อนี้หารด้วยศูนย์นะคะ\n"
-            "ลองคิดใหม่อีกครั้งได้เลยค่ะ\n\n"
-            "💡 Combo ถูกรีเซ็ตแล้ว แต่คะแนนเดิมยังอยู่ค่ะ"
+            "😅 ข้อนี้หารด้วยศูนย์นะคะ (Division by zero is not allowed)\n"
+            "ลองคิดใหม่อีกครั้งได้เลยค่ะ (Please try again)\n\n"
+            "💡 Combo ถูกรีเซ็ตแล้ว แต่คะแนนเดิมยังอยู่ค่ะ (Combo reset, but score remains)"
         )
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
@@ -861,26 +793,30 @@ def handle_message(event):
 
         if "เลขไม่ตรง" in reason:
             reply = (
-                "🔎 ลองเช็กตัวเลขอีกครั้งนะคะ\n\n"
-                f"โจทย์คือ: {' '.join(map(str, puzzle))}\n\n"
-                "ต้องใช้เลขทั้ง 4 ตัวให้ครบ และใช้แต่ละตัวอย่างละครั้งค่ะ"
+                "🔎 ลองเช็กตัวเลขอีกครั้งนะคะ (Please check the numbers again)\n\n"
+                f"โจทย์คือ (Puzzle): {' '.join(map(str, puzzle))}\n\n"
+                "ต้องใช้เลขทั้ง 4 ตัวให้ครบ และใช้แต่ละตัวอย่างละครั้งค่ะ\n"
+                "(Must use all 4 numbers exactly once)"
             )
         elif "เศษส่วน" in reason:
             reply = (
-                "💡 เกือบแล้วค่ะ!\n"
-                "กติกาของเราคือระหว่างคำนวณห้ามเกิดเศษส่วนนะคะ\n"
-                "ลองเปลี่ยนวิธีคำนวณอีกนิดค่ะ"
+                "💡 เกือบแล้วค่ะ! (Close!)\n"
+                "กติกาคือระหว่างคำนวณห้ามเกิดเศษส่วนนะคะ\n"
+                "(Fractions are not allowed during calculation)\n"
+                "ลองเปลี่ยนวิธีคำนวณอีกนิดค่ะ (Try a different approach)"
             )
         elif "ติดลบ" in reason:
             reply = (
                 "💡 สมการนี้มีค่าติดลบระหว่างคำนวณค่ะ\n"
-                "ลองจัดลำดับการคำนวณใหม่อีกครั้งนะคะ"
+                "(Negative values are not allowed during calculation)\n"
+                "ลองจัดลำดับการคำนวณใหม่อีกครั้งนะคะ (Please rearrange your equation)"
             )
         else:
             reply = (
-                "🌱 ยังไม่ใช่คำตอบนี้นะคะ\n"
-                "ลองคิดใหม่อีกครั้งค่ะ อย่าเพิ่งยอมแพ้นะคะ!\n\n"
-                "💡 คำตอบที่ผิดไม่ได้แปลว่าทำไม่ได้ค่ะ"
+                "🌱 ยังไม่ใช่คำตอบนี้นะคะ (Not quite!)\n"
+                "ลองคิดใหม่อีกครั้งค่ะ อย่าเพิ่งยอมแพ้นะคะ!\n"
+                "(Try again, don't give up!)\n\n"
+                "💡 คำตอบที่ผิดไม่ได้แปลว่าทำไม่ได้ค่ะ (Wrong answers are stepping stones!)"
             )
 
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
@@ -890,9 +826,9 @@ def handle_message(event):
         player["combo"] = 0
         save_data()
         reply = (
-            "🌱 สมการนี้ยังไม่ถูกต้องนะคะ\n"
-            "ลองเช็กวงเล็บและเครื่องหมายอีกครั้งค่ะ\n\n"
-            "💪 ไม่เป็นไรนะคะ ลองใหม่ได้เสมอค่ะ"
+            "🌱 สมการนี้ยังไม่ถูกต้องนะคะ (Invalid equation format)\n"
+            "ลองเช็กวงเล็บและเครื่องหมายอีกครั้งค่ะ (Please check parentheses and operators)\n\n"
+            "💪 ไม่เป็นไรนะคะ ลองใหม่ได้เสมอค่ะ (You can always try again)"
         )
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
@@ -906,10 +842,10 @@ def handle_message(event):
 
     reply = (
         f"{encouragement}\n\n"
-        f"ผลลัพธ์ของสมการนี้คือ {result}\n"
-        f"ยังไม่ใช่ 24 นะคะ\n\n"
-        f"ลองเปลี่ยนวิธีจัดตัวเลขดูอีกครั้งค่ะ\n"
-        f"💡 ยังไม่เสียคะแนนนะคะ ลองใหม่ได้เลย!"
+        f"ผลลัพธ์ของสมการนี้คือ {result} (The result is {result})\n"
+        f"ยังไม่ใช่ 24 นะคะ (It's not 24 yet)\n\n"
+        f"ลองเปลี่ยนวิธีจัดตัวเลขดูอีกครั้งค่ะ (Try rearranging the numbers)\n"
+        f"💡 ยังไม่เสียคะแนนนะคะ ลองใหม่ได้เลย! (No points lost, try again!)"
     )
 
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
