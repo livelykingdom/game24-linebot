@@ -709,7 +709,12 @@ def handle_message(event):
             "พร้อมลับสมองกันหรือยังคะ?\n\n"
             "พิมพ์ “ขอโจทย์” เพื่อเริ่มเล่นเกม 24 ค่ะ\n"
             "พิมพ์ “คะแนน” เพื่อดู Rank และคะแนนนะคะ\n"
-            "พิมพ์ “เหรียญ” เพื่อดูเหรียญที่สะสมค่ะ"
+            "พิมพ์ “เหรียญ” เพื่อดูเหรียญที่สะสมค่ะ\n\n"
+            "🇬🇧 English version:\n"
+            "Hello! 🌟 Ready to sharpen your mind?\n\n"
+            "Type “puzzle” to start playing Game 24.\n"
+            "Type “score” to check your Rank and points.\n"
+            "Type “badges” to view your collected badges."
         )
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
