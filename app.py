@@ -31,7 +31,7 @@ SAVE_FILE = "game_data.json"
 
 
 # =========================================================
-# PUZZLES (ครบถ้วน 404 ข้อ)
+# PUZZLES (ครบถ้วน 404 ข้อ)[cite: 1, 2]
 # =========================================================
 
 PUZZLES = [
@@ -180,10 +180,6 @@ def can_make_24(values):
 
 
 def find_hint_move(puzzle):
-    """
-    ระบบ Solver อัตโนมัติ: ค้นหาก้าวแรก (First Step) โดยเลือกจับคู่ตัวเลขที่มีอยู่จริงในโจทย์
-    และตรวจสอบว่าหากทำคู่รอดี้แล้ว ส่วนที่เหลือยังสามารถแก้เป็น 24 ได้จริงไหม
-    """
     puzzle_list = list(puzzle)
     
     for i in range(len(puzzle_list)):
@@ -429,7 +425,7 @@ def random_message(player, messages):
 
 
 # =========================================================
-# SAFE EQUATION EVALUATOR (ปรับปรุงให้รองรับตัวเลข 1 และโครงสร้างซับซ้อนขึ้น)
+# SAFE EQUATION EVALUATOR
 # =========================================================
 
 def evaluate_expression(expression, puzzle):
@@ -465,7 +461,6 @@ def evaluate_expression(expression, puzzle):
             else:
                 raise ValueError("มีเครื่องหมายที่ไม่อนุญาตค่ะ")
             
-            # ยืดหยุ่นเงื่อนไข: อนุญาตผลลัพธ์ระหว่างทางเป็นบวกหรือศูนย์ได้ และเป็นเศษส่วนได้ชั่วคราวแต่ผลรวมสุดท้ายต้องลงตัว
             if result < 0: raise ValueError("สมการมีค่าติดลบค่ะ")
             return result
         raise ValueError("ไม่สามารถใช้รูปแบบนี้ได้นะคะ")
@@ -541,7 +536,7 @@ def callback():
 
 
 # =========================================================
-# MESSAGE HANDLER
+# MESSAGE HANDLER (จัดลำดับถูกต้องตามสถานะโจทย์)
 # =========================================================
 
 @handler.add(MessageEvent, message=TextMessage)
@@ -584,15 +579,7 @@ def handle_message(event):
         )
         return
 
-    # 4. HINT (คำใบ้)
-    if text_lower in ["คำใบ้", "hint"]:
-        puzzle = player.get("current_puzzle")
-        hint_msg = make_hint_message(player, puzzle)
-        save_data()
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=hint_msg))
-        return
-
-    # 5. BREAK / SKIP
+    # 4. BREAK / SKIP
     if text_lower in ["พักก่อน", "break"]:
         player["current_puzzle"] = None
         player["combo"] = 0
@@ -601,14 +588,14 @@ def handle_message(event):
         reply = (
             "พักก่อนได้เลยนะคะ 🌷 (Take a break!)\n"
             "ไม่เป็นไรเลยค่ะ พรุ่งนี้หรือเมื่อพร้อมแล้ว กลับมาประลองใหม่ได้เสมอนะคะ\n\n"
-            "พิมพ์ “เล่น” เพื่อเล่นต่อได้เลยค่ะ\n"
+            "พิมพ์ “เล่น” หรือ “Play” เพื่อเล่นต่อได้เลยค่ะ\n"
             "(Type “play” to play again.)"
         )
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
     if text_lower in ["ข้าม", "skip"]:
-        if player["current_puzzle"] is not None:
+        if player.get("current_puzzle") is not None:
             puzzle = get_next_puzzle(player["score"])
             player["current_puzzle"] = puzzle
             player["combo"] = 0
@@ -624,8 +611,8 @@ def handle_message(event):
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
-    # 6. NO CURRENT PUZZLE
-    if player["current_puzzle"] is None:
+    # 5. NO CURRENT PUZZLE (ดักกรณีพิมพ์ข้อความมาตอนยังไม่เริ่มเล่น)
+    if player.get("current_puzzle") is None:
         reply = (
             "สวัสดีค่ะ 🌟 พร้อมลับสมองกันหรือยังคะ?\n\n"
             "พิมพ์ “เล่น” เพื่อเริ่มเล่นเกม 24 ค่ะ\n"
@@ -637,6 +624,14 @@ def handle_message(event):
             "Type “badges” to view your collected badges."
         )
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
+        return
+
+    # 6. HINT (วางไว้หลังตรวจสอบว่ามีโจทย์แน่นอนแล้ว)
+    if text_lower in ["คำใบ้", "hint"]:
+        puzzle = player.get("current_puzzle")
+        hint_msg = make_hint_message(player, puzzle)
+        save_data()
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=hint_msg))
         return
 
     # 7. ANSWER
