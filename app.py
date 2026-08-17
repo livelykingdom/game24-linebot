@@ -437,14 +437,18 @@ def random_message(player, messages):
 
 
 # =========================================================
-# SAFE EQUATION EVALUATOR
+# SAFE EQUATION EVALUATOR (รองรับทั้ง +, -, *, /, ×, ÷)
 # =========================================================
 
 def evaluate_expression(expression, puzzle):
     if len(expression) > 100:
         raise ValueError("สมการยาวเกินไปค่ะ")
+    
+    # แปลงเครื่องหมาย × และ ÷ ภาษาไทย ให้เป็น * และ / ของระบบคอมพิวเตอร์
+    expression = expression.replace('×', '*').replace('÷', '/')
+
     if not re.fullmatch(r"[0-9+\-*/()\s]+", expression):
-        raise ValueError("ใช้เฉพาะตัวเลขและ + - * / ( ) เท่านั้นค่ะ")
+        raise ValueError("ใช้เฉพาะตัวเลขและ + - × ÷ ( ) เท่านั้นค่ะ")
 
     try:
         tree = ast.parse(expression, mode="eval")
@@ -543,7 +547,7 @@ def format_puzzle_message(puzzle, player):
     return (
         f"🧩 โจทย์ถัดไป (Next puzzle): {nums}\n\n"
         f"🏅 Rank: {rank_th} ({rank_en}) | 🔥 Combo x{player['combo']}\n\n"
-        f"พิมพ์สมการมาได้เลยนะคะ\n"
+        f"พิมพ์สมการมาได้เลยนะคะ (ใช้ × หรือ ÷ ได้)\n"
         f"Type your equation when you're ready.\n\n"
         f"พิมพ์ “คำใบ้” เพื่อขอคำใบ้, “พัก” เพื่อพักก่อน หรือ “ข้าม” เพื่อเปลี่ยนโจทย์ค่ะ\n"
         f"Type “hint” for a clue, “break” to take a break, or “skip” for a new puzzle."
@@ -662,20 +666,18 @@ def handle_message(event):
         return
 
     # =====================================================
-    # NO CURRENT PUZZLE (ฟอร์มข้อความต้อนรับตามที่ขอ)
+    # NO CURRENT PUZZLE (อัปเดตฟอร์มข้อความต้อนรับใหม่)
     # =====================================================
     if player.get("current_puzzle") is None:
         reply = (
-            "สวัสดีค่ะ 🌟 พร้อมลับสมองกันหรือยังคะ?\n\n"
-            "พิมพ์ “เล่น” เพื่อเริ่มเล่นเกม 24 ค่ะ\n"
-            "พิมพ์ “คะแนน” เพื่อดู Rank และคะแนนนะคะ\n"
-            "พิมพ์ “เหรียญ” เพื่อดูเหรียญที่สะสมค่ะ\n\n"
-            "📢 หากไม่มีการเล่นต่อเนื่องเกิน 15 นาที ระบบจะรีเซ็ตสถานะ สามารถพิมพ์ “เล่น” หรือ “play” เพื่อเริ่มเล่นต่อได้ค่ะ\n\n"
-            "Hello! 🌟 Ready to sharpen your mind?\n\n"
-            "Type “play” to start playing Game 24.\n"
-            "Type “score” to check your Rank and points.\n"
-            "Type “badges” to view your collected badges.\n\n"
-            "📢 If there is no gameplay for more than 15 minutes, the system will reset the game status. Type “play” to continue playing."
+            "🌟 ยินดีต้อนรับสู่ เกม 24! ลับสมอง ประลองปัญญา\n\n"
+            "กติกา: ใช้ตัวเลข 4 ตัว + − × ÷ ให้ได้ 24\n\n"
+            "พิมพ์ “เล่น” เพื่อเริ่มเกมได้เลยค่ะ!\n\n"
+            "ⓘ หากไม่มีการเล่นต่อเนื่องเกิน 15 นาที ระบบจะรีเซ็ตสถานะ กรุณาพิมพ์ “เล่น” เพื่อเริ่มอีกครั้งค่ะ\n\n"
+            "🌟 Welcome to Game 24! Challenge your mind!\n\n"
+            "Rules: Use all 4 numbers with + − × ÷ to make 24.\n\n"
+            "Type “Play” to start the game!\n\n"
+            "ⓘ If there is no activity for more than 15 minutes, the game will reset. Please type “Play” to start again."
         )
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
@@ -776,7 +778,7 @@ def handle_message(event):
                 f"{badge_text}"
                 f"{milestone_message}\n\n"
                 f"🧩 โจทย์ถัดไป (Next puzzle): {' '.join(map(str, new_puzzle))}\n\n"
-                f"พิมพ์สมการมาได้เลยนะคะ\n"
+                f"พิมพ์สมการมาได้เลยนะคะ (ใช้ × หรือ ÷ ได้)\n"
                 f"Type your equation when you're ready.\n\n"
                 f"พิมพ์ “คำใบ้” เพื่อขอคำใบ้, “พัก” เพื่อพักก่อน หรือ “ข้าม” เพื่อเปลี่ยนโจทย์ค่ะ\n"
                 f"Type “hint” for a clue, “break” to take a break, or “skip” for a new puzzle."
