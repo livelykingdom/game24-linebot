@@ -145,7 +145,7 @@ difficulty_buckets = {0: [], 1: [], 2: [], 3: [], 4: []}
 
 
 # =========================================================
-# PUZZLE SOLVER
+# PUZZLE SOLVER & AUTOMATED HINT SYSTEM
 # =========================================================
 
 @lru_cache(maxsize=None)
@@ -161,80 +161,110 @@ def count_solutions(values):
         for j in range(i + 1, len(values)):
             a = values[i]
             b = values[j]
-            rest = [
-                values[k]
-                for k in range(len(values))
-                if k not in (i, j)
-            ]
+            rest = [values[k] for k in range(len(values)) if k not in (i, j)]
 
-            results = [
-                a + b,
-                a - b,
-                b - a,
-                a * b
-            ]
-
-            if b != 0:
-                results.append(Fraction(a, b))
-            if a != 0:
-                results.append(Fraction(b, a))
+            results = [a + b, a - b, b - a, a * b]
+            if b != 0: results.append(Fraction(a, b))
+            if a != 0: results.append(Fraction(b, a))
 
             for result in results:
-                if result < 0:
+                if result < 0 or result.denominator != 1:
                     continue
-                if result.denominator != 1:
-                    continue
-                new_values = rest + [result]
-                total += count_solutions(tuple(sorted(new_values)))
-
+                total += count_solutions(tuple(sorted(rest + [result])))
     return total
+
+
+@lru_cache(maxsize=None)
+def can_make_24(values):
+    """ ตรวจสอบว่าชุดตัวเลขนี้สามารถทำเป็น 24 ได้หรือไม่ """
+    return count_solutions(tuple(sorted(values))) > 0
+
+
+def find_hint_move(puzzle):
+    """
+    ระบบ Solver อัตโนมัติ: ค้นหาก้าวแรก (First Step) ที่ทำให้ยังสามารถไปต่อจนถึง 24 ได้จริง
+    โดยเลือกรูปแบบการกระทำที่เป็นธรรมชาติ เช่น คูณ หรือ บวก ก่อน
+    """
+    puzzle_list = list(puzzle)
+    
+    # ลองสํารวจคู่ตัวเลขทั้งหมดเพื่อหาว่าคู่ไหนทำก้าวแรกแล้วส่วนที่เหลือยังสามารถแก้เป็น 24 ได้
+    for i in range(len(puzzle_list)):
+        for j in range(i + 1, len(puzzle_list)):
+            a = puzzle_list[i]
+            b = puzzle_list[j]
+            rest = [puzzle_list[k] for k in range(len(puzzle_list)) if k not in (i, j)]
+
+            # รวบรวมความเป็นไปได้ของก้าวแรก
+            moves = [
+                (a * b, f"{a} × {b}"),
+                (a + b, f"{a} + {b}"),
+                (max(a, b) - min(a, b), f"{max(a, b)} − {min(a, b)}")
+            ]
+            if b != 0 and a % b == 0:
+                moves.append((a // b, f"{a} ÷ {b}"))
+            if a != 0 and b % a == 0:
+                moves.append((b // a, f"{b} ÷ {a}"))
+
+            for val, desc in moves:
+                if val < 0:
+                    continue
+                # ตรวจสอบว่าหากทำก้าวนี้แล้ว ตัวเลขที่เหลือ + ผลลัพธ์ สามารถแก้เป็น 24 ได้จริงไหม
+                if can_make_24(tuple(sorted(rest + [val]))):
+                    return desc, rest
+
+    return None, None
+
+
+def make_hint_message(player, puzzle):
+    """ สร้างข้อความ Hint ทั้งภาษาไทยและอังกฤษ ตามกติกา """
+    if not puzzle:
+        return "💡 ตอนยังไม่มีโจทย์นะคะ พิมพ์ ‘เล่น’ เพื่อเริ่มเล่นก่อนค่ะ\n💡 No active puzzle. Type 'play' to start."
+
+    if player.get("hint_used", False):
+        return (
+            "💡 คุณได้ใช้สิทธิ์คำใบ้สำหรับโจทย์ข้อนี้ไปแล้วค่ะ\n"
+            "ลองใช้ความสามารถลุยต่ออีกนิดนะคะ สู้ๆ ค่ะ!\n\n"
+            "💡 You have already used the hint for this puzzle.\n"
+            "Keep trying, you can do it!"
+        )
+
+    # ทำการทำเครื่องหมายว่าใช้ Hint แล้ว (ไม่หักคะแนน แต่จะบล็อกไม่ให้ใช้ซ้ำในโจทย์เดิม)
+    player["hint_used"] = True
+
+    # ค้นหาก้าวแรกจาก Solver
+    step_desc, rest_nums = find_hint_move(tuple(puzzle))
+
+    if step_desc:
+        th_text = f"ลองนำ {step_desc} มาคำนวณกันก่อนนะคะ แล้วลองคิดต่อจากเลขที่เหลือค่ะ"
+        en_text = f"Try {step_desc} first, then work with the remaining numbers."
+    else:
+        th_text = "ลองมองหาตัวเลข 2 ตัวที่สามารถนำมาคำนวณให้เข้าใกล้ 24 ก่อนนะคะ แล้วค่อยคิดต่อจากเลขที่เหลือค่ะ"
+        en_text = "Try finding two numbers that can help you get closer to 24, then work with the remaining numbers."
+
+    return (
+        f"💡 คำใบ้ค่ะ\n{th_text}\n\n"
+        f"💡 Hint\n{en_text}\n\n"
+        f"💡 คำใบ้ฟรี: ใช้แล้ว 1/1"
+    )
 
 
 def build_difficulty_buckets():
     if not PUZZLES:
         return
-
     puzzle_scores = []
     for puzzle in PUZZLES:
         score = count_solutions(tuple(puzzle))
         puzzle_scores.append((puzzle, score))
-
     puzzle_scores.sort(key=lambda x: x[1], reverse=True)
     total = len(puzzle_scores)
     bucket_size = max(1, total // 5)
-
-    difficulty_buckets[0].clear()
-    difficulty_buckets[1].clear()
-    difficulty_buckets[2].clear()
-    difficulty_buckets[3].clear()
-    difficulty_buckets[4].clear()
-
     for index, item in enumerate(puzzle_scores):
-        if index < bucket_size:
-            level = 0
-        elif index < bucket_size * 2:
-            level = 1
-        elif index < bucket_size * 3:
-            level = 2
-        elif index < bucket_size * 4:
-            level = 3
-        else:
-            level = 4
-
+        level = min(index // bucket_size, 4)
         difficulty_buckets[level].append(item[0])
 
 
 def get_difficulty_from_score(score):
-    if score < 20:
-        return 0
-    elif score < 40:
-        return 1
-    elif score < 60:
-        return 2
-    elif score < 80:
-        return 3
-    else:
-        return 4
+    return min(score // 20, 4)
 
 
 def get_next_puzzle(score):
@@ -268,6 +298,7 @@ def create_default_player():
         "personal_best_daily_score": 0,
         "badges": [],
         "current_puzzle": None,
+        "hint_used": False,  # เพิ่มสถานะการใช้ Hint
         "last_encouragement": ""
     }
 
@@ -301,6 +332,9 @@ def load_data():
 def get_player(user_id):
     if user_id not in players:
         players[user_id] = create_default_player()
+    # ป้องกันข้อมูลเก่าที่ยังไม่มีคีย์ hint_used
+    if "hint_used" not in players[user_id]:
+        players[user_id]["hint_used"] = False
     return players[user_id]
 
 
@@ -313,9 +347,7 @@ def today_str():
 
 
 def yesterday_str():
-    return (
-        datetime.now(BANGKOK_TZ).date() - timedelta(days=1)
-    ).isoformat()
+    return (datetime.now(BANGKOK_TZ).date() - timedelta(days=1)).isoformat()
 
 
 def prepare_daily_data(player):
@@ -331,18 +363,14 @@ def prepare_daily_data(player):
 def register_activity(player):
     today = today_str()
     prepare_daily_data(player)
-
     if player["last_active_date"] == today:
         return False
-
     if player["last_active_date"] == yesterday_str():
         player["streak"] += 1
     else:
         player["streak"] = 1
-
     player["best_streak"] = max(player["best_streak"], player["streak"])
     player["last_active_date"] = today
-
     return True
 
 
@@ -374,10 +402,7 @@ def update_badges(player):
 
 
 def get_badge_text(player):
-    unlocked = []
-    for badge in BADGES:
-        if badge["id"] in player["badges"]:
-            unlocked.append(f'{badge["icon"]} {badge["name"]}')
+    unlocked = [f'{b["icon"]} {b["name"]}' for b in BADGES if b["id"] in player["badges"]]
     if not unlocked:
         return "ยังไม่มีเหรียญ (No badges yet) 🌟\nเล่นต่ออีกนิดเดี๋ยวก็ได้แล้วค่ะ (Keep playing!)"
     return "\n".join(unlocked)
@@ -392,45 +417,24 @@ CORRECT_MESSAGES = [
     "✅ ถูกต้องค่ะ! Correct!\n🌟 เยี่ยมมากค่ะ! สมองไวมากเลย Excellent!",
     "✅ ถูกต้องค่ะ! Correct!\n🎯 แม่นมากค่ะ! จับทางโจทย์ได้เก่งจริง ๆ Spot on!",
     "✅ ถูกต้องค่ะ! Correct!\n🧠 เก่งมากนะคะ! คิดได้ยอดเยี่ยมเลย Brilliant!",
-    "✅ ถูกต้องค่ะ! Correct!\n🔥 สุดยอดค่ะ! วันนี้สมองกำลังร้อนแรงเลย Awesome!",
-    "✅ ถูกต้องค่ะ! Correct!\n🚀 ทำได้เยี่ยมมาก! ไปลุยข้อต่อไปกันเลย Great job!",
-    "✅ ถูกต้องค่ะ! Correct!\n💡 คิดได้เฉียบขาดและรวดเร็วมาก Smart and quick thinking!",
-    "✅ ถูกต้องค่ะ! Correct!\n🏆 สุดยอดนักคิด! เก่งมากๆ เลยค่ะ Absolute math star!"
+    "✅ ถูกต้องค่ะ! Correct!\n🔥 สุดยอดค่ะ! วันนี้สมองกำลังร้อนแรงเลย Awesome!"
 ]
 
 WRONG_MESSAGES = [
     "💪 ยังไม่ใช่คำตอบนี้นะคะ ลองใหม่อีกครั้งค่ะ\n💪 Not quite, try again!",
     "🧠 เกือบแล้วค่ะ! ลองจัดกลุ่มตัวเลขใหม่ดูนะคะ\n🧠 Almost! Try grouping the numbers differently.",
     "🌱 ไม่เป็นไรเลยค่ะ ลองคิดอีกมุมดูนะคะ\n🌱 It's okay, try looking from another angle.",
-    "✨ ใกล้ความจริงแล้วค่ะ ลองสลับเครื่องหมายดูนะคะ\n✨ So close! Try swapping operators.",
+    "✨ ใกล้ความจริงแล้วค่ะ ลองสลับเครื่องหมายดูนะคะ\n✨ So close! Try swapping operators."
 ]
 
 
 def random_message(player, messages):
-    available = [
-        m for m in messages
-        if m != player["last_encouragement"]
-    ]
+    available = [m for m in messages if m != player["last_encouragement"]]
     if not available:
         available = messages
     message = random.choice(available)
     player["last_encouragement"] = message
     return message
-
-
-# =========================================================
-# HINT GENERATOR
-# =========================================================
-
-def get_hint(puzzle):
-    return (
-        f"💡 คำใบ้ค่ะ\n"
-        f"ลองมองหาคู่ตัวเลขจากชุดนี้ ({' '.join(map(str, puzzle))}) "
-        f"ที่ทำให้ออกมาเป็นผลลัพธ์ง่ายๆ เช่น 6×4, 8×3 หรือ 12×2 ดูก่อนนะคะ\n\n"
-        f"💡 Hint\n"
-        f"Try looking for a pair of numbers from ({' '.join(map(str, puzzle))}) "
-        f"that can make a helpful intermediate number like 6×4, 8×3, or 12×2."
-    )
 
 
 # =========================================================
@@ -453,7 +457,6 @@ def evaluate_expression(expression, puzzle):
     def visit(node):
         if isinstance(node, ast.Expression):
             return visit(node.body)
-
         if isinstance(node, ast.Constant):
             if not isinstance(node.value, int):
                 raise ValueError("ใช้เฉพาะจำนวนเต็มนะคะ")
@@ -462,55 +465,28 @@ def evaluate_expression(expression, puzzle):
             if value < 0:
                 raise ValueError("ห้ามมีค่าติดลบนะคะ")
             return value
-
         if isinstance(node, ast.BinOp):
             left = visit(node.left)
             right = visit(node.right)
-
-            if isinstance(node.op, ast.Add):
-                result = left + right
-            elif isinstance(node.op, ast.Sub):
-                result = left - right
-            elif isinstance(node.op, ast.Mult):
-                result = left * right
+            if isinstance(node.op, ast.Add): result = left + right
+            elif isinstance(node.op, ast.Sub): result = left - right
+            elif isinstance(node.op, ast.Mult): result = left * right
             elif isinstance(node.op, ast.Div):
-                if right == 0:
-                    raise ZeroDivisionError
+                if right == 0: raise ZeroDivisionError
                 result = left / right
             else:
                 raise ValueError("มีเครื่องหมายที่ไม่อนุญาตค่ะ")
-
-            if result < 0:
-                raise ValueError("สมการมีค่าติดลบค่ะ")
-            if result.denominator != 1:
-                raise ValueError("ระหว่างคำนวณห้ามมีเศษส่วนนะคะ")
-
+            if result < 0: raise ValueError("สมการมีค่าติดลบค่ะ")
+            if result.denominator != 1: raise ValueError("ระหว่างคำนวณห้ามมีเศษส่วนนะคะ")
             return result
-
         raise ValueError("ไม่สามารถใช้รูปแบบนี้ได้นะคะ")
 
     result = visit(tree)
-
     if sorted(used_numbers) != sorted(puzzle):
         raise ValueError("ใช้เลขไม่ตรงกับโจทย์ค่ะ")
     if len(used_numbers) != 4:
         raise ValueError("ต้องใช้เลขให้ครบทั้ง 4 ตัวนะคะ")
-
     return result
-
-
-# =========================================================
-# SCORE / COMBO
-# =========================================================
-
-def calculate_combo_bonus(combo):
-    if combo >= 10:
-        return 5
-    if combo >= 5:
-        return 2
-    if combo >= 3:
-        return 1
-    return 0
 
 
 # =========================================================
@@ -528,15 +504,14 @@ def format_stats(player):
         f"⭐ Personal Best: {player['personal_best_daily_score']}\n"
         f"🎖️ เหรียญ (Badges): {len(player['badges'])}/{len(BADGES)}\n\n"
         f"{get_progress_text(player['score'])}\n\n"
-        f"พิมพ์ 'เล่น' หรือ 'Play' เพื่อเริ่มเกม (Type 'play' to continue)\n"
-        f"พิมพ์ 'เหรียญ' เพื่อดูเหรียญที่ได้ (Type 'badges' to see your badges)"
+        f"พิมพ์ 'เล่น' เพื่อเริ่มเกม (Type 'play' to continue)\n"
+        f"พิมพ์ 'เหรียญ' เพื่อดูเหรียญ (Type 'badges')"
     )
 
 
 def format_puzzle_message(puzzle, player):
     nums = " ".join(map(str, puzzle))
     rank_th, rank_en = get_rank(player["score"])
-
     return (
         f"🧩 โจทย์ถัดไป (Next puzzle): {nums}\n\n"
         f"🏅 Rank: {rank_th} ({rank_en}) | 🔥 Combo x{player['combo']}\n\n"
@@ -585,17 +560,13 @@ def handle_message(event):
 
     prepare_daily_data(player)
 
-    # =====================================================
-    # SCORE
-    # =====================================================
+    # 1. SCORE
     if text_lower in ["คะแนน", "score"]:
         save_data()
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=format_stats(player)))
         return
 
-    # =====================================================
-    # BADGES
-    # =====================================================
+    # 2. BADGES
     if text_lower in ["เหรียญ", "badge", "badges"]:
         save_data()
         reply = (
@@ -607,13 +578,12 @@ def handle_message(event):
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
-    # =====================================================
-    # PLAY
-    # =====================================================
+    # 3. PLAY
     if text_lower in ["เล่น", "play"]:
         register_activity(player)
         puzzle = get_next_puzzle(player["score"])
         player["current_puzzle"] = puzzle
+        player["hint_used"] = False  # รีเซ็ตสถานะการใช้ Hint เมื่อได้โจทย์ใหม่
         save_data()
         line_bot_api.reply_message(
             event.reply_token,
@@ -621,28 +591,24 @@ def handle_message(event):
         )
         return
 
-    # =====================================================
-    # HINT
-    # =====================================================
+    # 4. HINT (คำใบ้)
     if text_lower in ["คำใบ้", "hint"]:
-        if player["current_puzzle"] is not None:
-            reply = get_hint(player["current_puzzle"])
-            line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
-        else:
-            line_bot_api.reply_message(event.reply_token, TextSendMessage(text="ยังไม่มีโจทย์ที่เล่นอยู่ค่ะ พิมพ์ 'เล่น' เพื่อเริ่มเกมก่อนนะคะ"))
+        puzzle = player.get("current_puzzle")
+        hint_msg = make_hint_message(player, puzzle)
+        save_data()
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=hint_msg))
         return
 
-    # =====================================================
-    # BREAK / SKIP
-    # =====================================================
+    # 5. BREAK / SKIP
     if text_lower in ["พักก่อน", "break"]:
         player["current_puzzle"] = None
         player["combo"] = 0
+        player["hint_used"] = False
         save_data()
         reply = (
             "พักก่อนได้เลยนะคะ 🌷 (Take a break!)\n"
             "ไม่เป็นไรเลยค่ะ พรุ่งนี้หรือเมื่อพร้อมแล้ว กลับมาประลองใหม่ได้เสมอนะคะ\n\n"
-            "พิมพ์ “เล่น” หรือ “Play” เพื่อเล่นต่อได้เลยค่ะ\n"
+            "พิมพ์ “เล่น” เพื่อเล่นต่อได้เลยค่ะ\n"
             "(Type “play” to play again.)"
         )
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
@@ -653,6 +619,7 @@ def handle_message(event):
             puzzle = get_next_puzzle(player["score"])
             player["current_puzzle"] = puzzle
             player["combo"] = 0
+            player["hint_used"] = False  # รีเซ็ตสถานะ Hint สำหรับโจทย์ใหม่
             save_data()
             reply = (
                 f"🔄 เปลี่ยนโจทย์เรียบร้อยค่ะ! (Puzzle skipped!)\n\n"
@@ -660,13 +627,11 @@ def handle_message(event):
             )
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         else:
-            reply = "ยังไม่มีโจทย์ที่กำลังเล่นอยู่ค่ะ พิมพ์ “เล่น” หรือ “Play” เพื่อเริ่มได้เลยค่ะ"
+            reply = "ยังไม่มีโจทย์ที่กำลังเล่นอยู่ค่ะ พิมพ์ “เล่น” เพื่อเริ่มได้เลยค่ะ\n(No active puzzle. Type 'play' to start.)"
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
-    # =====================================================
-    # NO CURRENT PUZZLE
-    # =====================================================
+    # 6. NO CURRENT PUZZLE
     if player["current_puzzle"] is None:
         reply = (
             "สวัสดีค่ะ 🌟 พร้อมลับสมองกันหรือยังคะ?\n\n"
@@ -681,58 +646,40 @@ def handle_message(event):
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
-    # =====================================================
-    # ANSWER
-    # =====================================================
+    # 7. ANSWER
     puzzle = player["current_puzzle"]
 
     try:
         result = evaluate_expression(text, puzzle)
 
-        # =================================================
-        # CORRECT
-        # =================================================
         if result == 24:
             player["correct_total"] += 1
             player["daily_correct"] += 1
-            player["combo"] += 1
-
-            player["best_combo"] = max(player["best_combo"], player["combo"])
-            player["round_correct"] += 1
+            
+            # กติกา: หากใช้ Hint แล้ว Combo จะไม่เพิ่ม แต่ยังได้คะแนนปกติ
+            if player.get("hint_used", False):
+                combo_bonus = 0
+            else:
+                player["combo"] += 1
+                player["best_combo"] = max(player["best_combo"], player["combo"])
+                combo_bonus = calculate_combo_bonus(player["combo"])
 
             base_score = 1
-            combo_bonus = calculate_combo_bonus(player["combo"])
             milestone_bonus = 0
             milestone_message = ""
 
+            player["round_correct"] += 1
             if player["round_correct"] == 5:
                 milestone_bonus += 2
-                milestone_message = (
-                    "\n\n🎉 จบด่านย่อย 5 ข้อ! (5 Puzzles Cleared!)\n"
-                    "🎁 โบนัส (Bonus): +2"
-                )
+                milestone_message = "\n\n🎉 จบด่านย่อย 5 ข้อ! (+2 Bonus)"
             elif player["round_correct"] == 10:
                 milestone_bonus += 5
-                milestone_message = (
-                    "\n\n🏆 จบด่าน 10 ข้อ! (10 Puzzles Cleared!)\n"
-                    "🎁 โบนัสพิเศษ (Special Bonus): +5\n"
-                    "🚀 ไปต่อด่านใหม่กันเลยค่ะ! (Next stage!)"
-                )
+                milestone_message = "\n\n🏆 จบด่าน 10 ข้อ! (+5 Bonus)"
                 player["round_correct"] = 0
 
             if player["daily_correct"] == 5:
                 milestone_bonus += 2
-                milestone_message += (
-                    "\n\n🎯 ภารกิจวันนี้สำเร็จ! (Daily Mission Completed!)\n"
-                    "🎁 โบนัส (Bonus): +2"
-                )
-            
-            if player["daily_correct"] == 10:
-                milestone_bonus += 5
-                milestone_message += (
-                    "\n\n🌟 วันนี้สุดยอดมากค่ะ! (You are amazing today!)\n"
-                    "🎁 โบนัส (Bonus): +5"
-                )
+                milestone_message += "\n\n🎯 ภารกิจวันนี้สำเร็จ! (+2 Bonus)"
 
             total_gain = base_score + combo_bonus + milestone_bonus
 
@@ -745,8 +692,10 @@ def handle_message(event):
             update_badges(player)
             rank_th, rank_en = get_rank(player["score"])
 
+            # แจกโจทย์ใหม่ และรีเซ็ตสถานะ hint_used
             new_puzzle = get_next_puzzle(player["score"])
             player["current_puzzle"] = new_puzzle
+            player["hint_used"] = False 
             encouragement = random_message(player, CORRECT_MESSAGES)
 
             progress = get_progress_text(player["score"])
@@ -769,17 +718,10 @@ def handle_message(event):
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
             return
 
-    # =====================================================
-    # WRONG / INVALID
-    # =====================================================
     except ZeroDivisionError:
         player["combo"] = 0
         save_data()
-        reply = (
-            "😅 ข้อนี้หารด้วยศูนย์นะคะ (Division by zero is not allowed)\n"
-            "ลองคิดใหม่อีกครั้งได้เลยค่ะ (Please try again)\n\n"
-            "💡 Combo ถูกรีเซ็ตแล้ว แต่คะแนนเดิมยังอยู่ค่ะ (Combo reset, but score remains)"
-        )
+        reply = "😅 ข้อนี้หารด้วยศูนย์นะคะ (Division by zero)\nลองคิดใหม่อีกครั้งได้เลยค่ะ"
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
@@ -787,64 +729,29 @@ def handle_message(event):
         player["combo"] = 0
         save_data()
         reason = str(e)
-
         if "เลขไม่ตรง" in reason:
-            reply = (
-                "🔎 ลองเช็กตัวเลขอีกครั้งนะคะ (Please check the numbers again)\n\n"
-                f"โจทย์คือ (Puzzle): {' '.join(map(str, puzzle))}\n\n"
-                "ต้องใช้เลขทั้ง 4 ตัวให้ครบ และใช้แต่ละตัวอย่างละครั้งค่ะ\n"
-                "(Must use all 4 numbers exactly once)"
-            )
+            reply = f"🔎 ใช้ตัวเลขไม่ตรงกับโจทย์ค่ะ\nโจทย์คือ: {' '.join(map(str, puzzle))}"
         elif "เศษส่วน" in reason:
-            reply = (
-                "💡 เกือบแล้วค่ะ! (Close!)\n"
-                "กติกาคือระหว่างคำนวณห้ามเกิดเศษส่วนนะคะ\n"
-                "(Fractions are not allowed during calculation)\n"
-                "ลองเปลี่ยนวิธีคำนวณอีกนิดค่ะ (Try a different approach)"
-            )
+            reply = "💡 ห้ามเกิดเศษส่วนระหว่างคำนวณค่ะ ลองใหม่นะ"
         elif "ติดลบ" in reason:
-            reply = (
-                "💡 สมการนี้มีค่าติดลบระหว่างคำนวณค่ะ\n"
-                "(Negative values are not allowed during calculation)\n"
-                "ลองจัดลำดับการคำนวณใหม่อีกครั้งนะคะ (Please rearrange your equation)"
-            )
+            reply = "💡 ห้ามมีค่าติดลบระหว่างคำนวณค่ะ ลองใหม่นะ"
         else:
-            reply = (
-                "🌱 ยังไม่ใช่คำตอบนี้นะคะ (Not quite!)\n"
-                "ลองคิดใหม่อีกครั้งค่ะ อย่าเพิ่งยอมแพ้นะคะ!\n"
-                "(Try again, don't give up!)\n\n"
-                "💡 คำตอบที่ผิดไม่ได้แปลว่าทำไม่ได้ค่ะ (Wrong answers are stepping stones!)"
-            )
-
+            reply = "🌱 สมการไม่ถูกต้อง ลองเช็กเครื่องหมายอีกครั้งค่ะ"
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
     except Exception:
         player["combo"] = 0
         save_data()
-        reply = (
-            "🌱 สมการนี้ยังไม่ถูกต้องนะคะ (Invalid equation format)\n"
-            "ลองเช็กวงเล็บและเครื่องหมายอีกครั้งค่ะ (Please check parentheses and operators)\n\n"
-            "💪 ไม่เป็นไรนะคะ ลองใหม่ได้เสมอค่ะ (You can always try again)"
-        )
+        reply = "🌱 สมการยังไม่ถูกต้อง ลองใหม่นะคะ"
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
-    # =====================================================
     # RESULT != 24
-    # =====================================================
     player["combo"] = 0
     save_data()
     encouragement = random_message(player, WRONG_MESSAGES)
-
-    reply = (
-        f"{encouragement}\n\n"
-        f"ผลลัพธ์ของสมการนี้คือ {result} (The result is {result})\n"
-        f"ยังไม่ใช่ 24 นะคะ (It's not 24 yet)\n\n"
-        f"ลองเปลี่ยนวิธีจัดตัวเลขดูอีกครั้งค่ะ (Try rearranging the numbers)\n"
-        f"💡 ยังไม่เสียคะแนนนะคะ ลองใหม่ได้เลย! (No points lost, try again!)"
-    )
-
+    reply = f"{encouragement}\n\nผลลัพธ์คือ {result} ยังไม่ใช่ 24 นะคะ ลองใหม่ได้เลย!"
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
 
 
