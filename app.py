@@ -130,27 +130,6 @@ def get_progress_text(score):
 
 
 # =========================================================
-# DIFFICULTY
-# =========================================================
-
-DIFFICULTY_NAMES = {
-    0: ("🌱 Easy", "ง่าย"),
-    1: ("🌿 Normal", "ปกติ"),
-    2: ("🔥 Challenge", "ท้าทาย"),
-    3: ("⚡ Expert", "ยาก"),
-    4: ("👑 Master", "ระดับปรมาจารย์"),
-}
-
-difficulty_buckets = {
-    0: [],
-    1: [],
-    2: [],
-    3: [],
-    4: []
-}
-
-
-# =========================================================
 # PUZZLE SOLVER & HINT SYSTEM
 # =========================================================
 
@@ -260,59 +239,20 @@ def make_hint_message(player, puzzle):
     )
 
 
-def build_difficulty_buckets():
-    if not PUZZLES:
-        return
+def get_unique_puzzle(player):
+    if "history_puzzles" not in player:
+        player["history_puzzles"] = []
 
-    puzzle_scores = []
-    for puzzle in PUZZLES:
-        score = count_solutions(tuple(puzzle))
-        puzzle_scores.append((puzzle, score))
+    if len(player["history_puzzles"]) >= len(PUZZLES):
+        player["history_puzzles"] = []
 
-    puzzle_scores.sort(key=lambda x: x[1], reverse=True)
-    total = len(puzzle_scores)
-    bucket_size = max(1, total // 5)
+    available_puzzles = [p for p in PUZZLES if p not in player["history_puzzles"]]
+    if not available_puzzles:
+        available_puzzles = PUZZLES
 
-    difficulty_buckets[0].clear()
-    difficulty_buckets[1].clear()
-    difficulty_buckets[2].clear()
-    difficulty_buckets[3].clear()
-    difficulty_buckets[4].clear()
-
-    for index, item in enumerate(puzzle_scores):
-        if index < bucket_size:
-            level = 0
-        elif index < bucket_size * 2:
-            level = 1
-        elif index < bucket_size * 3:
-            level = 2
-        elif index < bucket_size * 4:
-            level = 3
-        else:
-            level = 4
-
-        difficulty_buckets[level].append(item[0])
-
-
-def get_difficulty_from_score(score):
-    if score < 20:
-        return 0
-    elif score < 40:
-        return 1
-    elif score < 60:
-        return 2
-    elif score < 80:
-        return 3
-    else:
-        return 4
-
-
-def get_next_puzzle(score):
-    level = get_difficulty_from_score(score)
-    bucket = difficulty_buckets.get(level, [])
-    if not bucket:
-        bucket = PUZZLES
-    return random.choice(bucket)
+    chosen_puzzle = random.choice(available_puzzles)
+    player["history_puzzles"].append(chosen_puzzle)
+    return chosen_puzzle
 
 
 # =========================================================
@@ -338,6 +278,7 @@ def create_default_player():
         "personal_best_daily_score": 0,
         "badges": [],
         "current_puzzle": None,
+        "history_puzzles": [],
         "hint_used": False,
         "last_encouragement": ""
     }
@@ -374,6 +315,8 @@ def get_player(user_id):
         players[user_id] = create_default_player()
     if "hint_used" not in players[user_id]:
         players[user_id]["hint_used"] = False
+    if "history_puzzles" not in players[user_id]:
+        players[user_id]["history_puzzles"] = []
     return players[user_id]
 
 
@@ -494,7 +437,7 @@ def random_message(player, messages):
 
 
 # =========================================================
-# SAFE EQUATION EVALUATOR (ใช้ตัวตรวจเช็กจากโค้ดเก่าที่เสถียร 100%)
+# SAFE EQUATION EVALUATOR
 # =========================================================
 
 def evaluate_expression(expression, puzzle):
@@ -612,7 +555,6 @@ def format_puzzle_message(puzzle, player):
 # =========================================================
 
 load_data()
-build_difficulty_buckets()
 
 
 # =========================================================
@@ -673,7 +615,7 @@ def handle_message(event):
     if text_lower in ["เล่น", "play"]:
         register_activity(player)
         if player.get("current_puzzle") is None:
-            puzzle = get_next_puzzle(player["score"])
+            puzzle = get_unique_puzzle(player)
             player["current_puzzle"] = puzzle
             player["hint_used"] = False
             save_data()
@@ -704,7 +646,7 @@ def handle_message(event):
 
     if text_lower in ["ข้าม", "skip"]:
         if player.get("current_puzzle") is not None:
-            puzzle = get_next_puzzle(player["score"])
+            puzzle = get_unique_puzzle(player)
             player["current_puzzle"] = puzzle
             player["combo"] = 0
             player["hint_used"] = False
@@ -720,7 +662,7 @@ def handle_message(event):
         return
 
     # =====================================================
-    # NO CURRENT PUZZLE
+    # NO CURRENT PUZZLE (พร้อมประกาศแจ้งเตือน 15 นาที)
     # =====================================================
     if player.get("current_puzzle") is None:
         reply = (
@@ -728,6 +670,8 @@ def handle_message(event):
             "พิมพ์ “เล่น” เพื่อเริ่มเล่นเกม 24 ค่ะ\n"
             "พิมพ์ “คะแนน” เพื่อดู Rank และคะแนนนะคะ\n"
             "พิมพ์ “เหรียญ” เพื่อดูเหรียญที่สะสมค่ะ\n\n"
+            "📢 หากไม่มีการเล่นต่อเนื่องเกิน 15 นาที ระบบจะรีเซ็ตสถานะ สามารถพิมพ์ “เล่น” หรือ “play” เพื่อเริ่มเล่นต่อได้ค่ะ\n"
+            "If there is no gameplay for more than 15 minutes, the system will reset the game status. Type “play” to continue playing.\n\n"
             "Hello! 🌟 Ready to sharpen your mind?\n\n"
             "Type “play” to start playing Game 24.\n"
             "Type “score” to check your Rank and points.\n"
@@ -813,7 +757,7 @@ def handle_message(event):
             new_badges = update_badges(player)
             rank_th, rank_en = get_rank(player["score"])
 
-            new_puzzle = get_next_puzzle(player["score"])
+            new_puzzle = get_unique_puzzle(player)
             player["current_puzzle"] = new_puzzle
             player["hint_used"] = False
             encouragement = random_message(player, CORRECT_MESSAGES)
