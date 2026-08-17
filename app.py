@@ -444,7 +444,6 @@ def evaluate_expression(expression, puzzle):
     if len(expression) > 100:
         raise ValueError("สมการยาวเกินไปค่ะ")
     
-    # แปลงเครื่องหมาย × และ ÷ ภาษาไทย ให้เป็น * และ / ของระบบคอมพิวเตอร์
     expression = expression.replace('×', '*').replace('÷', '/')
 
     if not re.fullmatch(r"[0-9+\-*/()\s]+", expression):
@@ -547,7 +546,7 @@ def format_puzzle_message(puzzle, player):
     return (
         f"🧩 โจทย์ถัดไป (Next puzzle): {nums}\n\n"
         f"🏅 Rank: {rank_th} ({rank_en}) | 🔥 Combo x{player['combo']}\n\n"
-        f"พิมพ์สมการมาได้เลยนะคะ (ใช้ × หรือ ÷ ได้)\n"
+        f"พิมพ์สมการมาได้เลยนะคะ\n"
         f"Type your equation when you're ready.\n\n"
         f"พิมพ์ “คำใบ้” เพื่อขอคำใบ้, “พัก” เพื่อพักก่อน หรือ “ข้าม” เพื่อเปลี่ยนโจทย์ค่ะ\n"
         f"Type “hint” for a clue, “break” to take a break, or “skip” for a new puzzle."
@@ -666,7 +665,7 @@ def handle_message(event):
         return
 
     # =====================================================
-    # NO CURRENT PUZZLE (ฟอร์มข้อความต้อนรับใหม่ล่าสุด)
+    # NO CURRENT PUZZLE (ฟอร์มข้อความต้อนรับใหม่)
     # =====================================================
     if player.get("current_puzzle") is None:
         reply = (
@@ -782,7 +781,7 @@ def handle_message(event):
                 f"{badge_text}"
                 f"{milestone_message}\n\n"
                 f"🧩 โจทย์ถัดไป (Next puzzle): {' '.join(map(str, new_puzzle))}\n\n"
-                f"พิมพ์สมการมาได้เลยนะคะ (ใช้ × หรือ ÷ ได้)\n"
+                f"พิมพ์สมการมาได้เลยนะคะ\n"
                 f"Type your equation when you're ready.\n\n"
                 f"พิมพ์ “คำใบ้” เพื่อขอคำใบ้, “พัก” เพื่อพักก่อน หรือ “ข้าม” เพื่อเปลี่ยนโจทย์ค่ะ\n"
                 f"Type “hint” for a clue, “break” to take a break, or “skip” for a new puzzle."
