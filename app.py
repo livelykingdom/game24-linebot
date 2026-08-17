@@ -124,8 +124,8 @@ def get_progress_text(score):
     remaining = next_score - score
 
     return (
-        f"📈 อีก {remaining} คะแนน จะเลื่อนขั้นเป็น «{next_th}»\n"
-        f"📈 {remaining} more points to «{next_en}»"
+        f"อีก {remaining} คะแนน จะเลื่อนขั้นเป็น {next_th}\n"
+        f"📈 {remaining} more point{'s' if remaining > 1 else ''} to {next_en}"
     )
 
 
@@ -461,16 +461,14 @@ def get_badge_text(player):
 # =========================================================
 
 CORRECT_MESSAGES = [
-    "✨ ถูกต้องค่ะ! เก่งมากเลยนะคะ\n✨ Correct! Great job!",
-    "🌟 เยี่ยมมากค่ะ! สมองไวมากเลย\n🌟 Excellent! Your mind is so fast!",
-    "🎯 แม่นมากค่ะ! จับทางโจทย์ได้เก่งจริง ๆ\n🎯 Spot on! You really got the hang of it!",
-    "🧠 เก่งมากนะคะ! คิดได้ยอดเยี่ยมเลย\n🧠 Brilliant! That was smart!",
-    "🔥 สุดยอดค่ะ! วันนี้สมองกำลังร้อนแรงเลย\n🔥 Awesome! You're on fire today!",
-    "👏 ถูกต้องค่ะ! ค่อย ๆ เก่งขึ้นทุกข้อเลยนะคะ\n👏 Correct! Getting better every puzzle!",
-    "🚀 เก่งมากค่ะ! ไปต่อกันอีกข้อเลยนะคะ\n🚀 Great! Let's move to the next one!",
-    "💡 คิดได้เฉียบมากค่ะ!\n💡 Very sharp thinking!",
-    "🏆 เยี่ยมเลยค่ะ! ดันคะแนนขึ้นไปอีกนะคะ\n🏆 Wonderful! Keep pushing that score up!",
-    "🌈 ทำได้แล้วค่ะ! อย่าเพิ่งหยุดนะคะ\n🌈 You did it! Don't stop now!"
+    "✅ ถูกต้องค่ะ! Correct!\n✨ คิดได้เฉียบมากค่ะ! Very sharp thinking!",
+    "✅ ถูกต้องค่ะ! Correct!\n🌟 เยี่ยมมากค่ะ! สมองไวมากเลย Excellent!",
+    "✅ ถูกต้องค่ะ! Correct!\n🎯 แม่นมากค่ะ! จับทางโจทย์ได้เก่งจริง ๆ Spot on!",
+    "✅ ถูกต้องค่ะ! Correct!\n🧠 เก่งมากนะคะ! คิดได้ยอดเยี่ยมเลย Brilliant!",
+    "✅ ถูกต้องค่ะ! Correct!\n🔥 สุดยอดค่ะ! วันนี้สมองกำลังร้อนแรงเลย Awesome!",
+    "✅ ถูกต้องค่ะ! Correct!\n🚀 ทำได้เยี่ยมมาก! ไปลุยข้อต่อไปกันเลย Great job!",
+    "✅ ถูกต้องค่ะ! Correct!\n💡 คิดได้เฉียบขาดและรวดเร็วมาก Smart and quick thinking!",
+    "✅ ถูกต้องค่ะ! Correct!\n🏆 สุดยอดนักคิด! เก่งมากๆ เลยค่ะ Absolute math star!"
 ]
 
 WRONG_MESSAGES = [
@@ -496,7 +494,7 @@ def random_message(player, messages):
 
 
 # =========================================================
-# SAFE EQUATION EVALUATOR (ใช้ตัวตรวจเช็กจากโค้ดเก่าที่เสถียร 100%)
+# SAFE EQUATION EVALUATOR (ใช้ตัวตรวจเช็กจากโค้ดเก่าที่เสถียร 100%)[cite: 3]
 # =========================================================
 
 def evaluate_expression(expression, puzzle):
@@ -606,7 +604,7 @@ def format_puzzle_message(puzzle, player):
         f"🏅 Rank: {rank_th} ({rank_en}) | 🔥 Combo x{player['combo']}\n\n"
         f"พิมพ์สมการมาได้เลยนะคะ\n"
         f"Type your equation when you're ready.\n\n"
-        f"พิมพ์ “คำใบ้” เพื่อขอคำใบ้, “พักก่อน” เพื่อพัก หรือ “ข้าม” เพื่อเปลี่ยนโจทย์ค่ะ\n"
+        f"พิมพ์ “คำใบ้” เพื่อขอคำใบ้, “พัก” เพื่อพักก่อน หรือ “ข้าม” เพื่อเปลี่ยนโจทย์ค่ะ\n"
         f"Type “hint” for a clue, “break” to take a break, or “skip” for a new puzzle."
     )
 
@@ -672,7 +670,7 @@ def handle_message(event):
         return
 
     # =====================================================
-    # PLAY (เปลี่ยนจาก ขอโจทย์ เป็น เล่น / play)
+    # PLAY (เล่น / play)
     # =====================================================
     if text_lower in ["เล่น", "play"]:
         register_activity(player)
@@ -687,9 +685,9 @@ def handle_message(event):
         return
 
     # =====================================================
-    # BREAK / SKIP (พักก่อน / ข้าม)
+    # BREAK / SKIP (พัก / ข้าม)
     # =====================================================
-    if text_lower in ["พักก่อน", "break"]:
+    if text_lower in ["พัก", "break"]:
         player["current_puzzle"] = None
         player["combo"] = 0
         player["hint_used"] = False
@@ -709,7 +707,7 @@ def handle_message(event):
             puzzle = get_next_puzzle(player["score"])
             player["current_puzzle"] = puzzle
             player["combo"] = 0
-            player["hint_used"] = False
+            player["hint_used"] = False  # รีเซ็ตสิทธิ์คำใบ้ฟรีสำหรับโจทย์ข้อใหม่
             save_data()
             reply = (
                 f"🔄 เปลี่ยนโจทย์เรียบร้อยค่ะ! (Puzzle skipped!)\n\n"
@@ -778,32 +776,15 @@ def handle_message(event):
             player["round_correct"] += 1
             if player["round_correct"] == 5:
                 milestone_bonus += 2
-                milestone_message = (
-                    "\n\n🎉 จบด่านย่อย 5 ข้อ! (5 Puzzles Cleared!)\n"
-                    "🎁 โบนัส (Bonus): +2"
-                )
+                milestone_message = "\n\n🎉 จบด่านย่อย 5 ข้อ! (+2 Bonus)"
             elif player["round_correct"] == 10:
                 milestone_bonus += 5
-                milestone_message = (
-                    "\n\n🏆 จบด่าน 10 ข้อ! (10 Puzzles Cleared!)\n"
-                    "🎁 โบนัสพิเศษ (Special Bonus): +5\n"
-                    "🚀 ไปต่อด่านใหม่กันเลยค่ะ! (Next stage!)"
-                )
+                milestone_message = "\n\n🏆 จบด่าน 10 ข้อ! (+5 Bonus)"
                 player["round_correct"] = 0
 
             if player["daily_correct"] == 5:
                 milestone_bonus += 2
-                milestone_message += (
-                    "\n\n🎯 ภารกิจวันนี้สำเร็จ! (Daily Mission Completed!)\n"
-                    "🎁 โบนัส (Bonus): +2"
-                )
-            
-            if player["daily_correct"] == 10:
-                milestone_bonus += 5
-                milestone_message += (
-                    "\n\n🌟 วันนี้สุดยอดมากค่ะ! (You are amazing today!)\n"
-                    "🎁 โบนัส (Bonus): +5"
-                )
+                milestone_message += "\n\n🎯 ภารกิจวันนี้สำเร็จ! (+2 Bonus)"
 
             total_gain = base_score + combo_bonus + milestone_bonus
             old_score = player["score"]
@@ -816,56 +797,31 @@ def handle_message(event):
 
             new_badges = update_badges(player)
             old_rank = get_rank(old_score)
-            new_rank = get_rank(player["score"])
-            rank_up = old_rank != new_rank
+            rank_th, rank_en = get_rank(player["score"])
 
             new_puzzle = get_next_puzzle(player["score"])
             player["current_puzzle"] = new_puzzle
             player["hint_used"] = False
             encouragement = random_message(player, CORRECT_MESSAGES)
-            rank_th, rank_en = get_rank(player["score"])
 
-            combo_text = ""
-            if combo_bonus > 0:
-                combo_text = (
-                    f"\n🔥 COMBO x{player['combo']}! "
-                    f"โบนัส (Bonus): +{combo_bonus}"
-                )
-
-            rank_text = ""
-            if rank_up:
-                rank_text = (
-                    f"\n\n🎉 ยินดีด้วยนะคะ! (Congratulations!)\n"
-                    f"เลื่อนขั้นเป็น (Rank up to) 🏅 {rank_th} ({rank_en})!"
-                )
+            progress_text = get_progress_text(player["score"])
 
             badge_text = ""
             if new_badges:
-                badge_text = (
-                    "\n\n🎖️ ปลดล็อกเหรียญใหม่! (New Badge Unlocked!)\n"
-                    + "\n".join(new_badges)
-                )
-
-            progress = get_progress_text(player["score"])
+                badge_text = "\n\n🎖️ ปลดล็อกเหรียญใหม่! (New Badge Unlocked!)\n" + "\n".join(new_badges)
 
             reply = (
                 f"{encouragement}\n\n"
-                f"✅ คำตอบถูกต้อง! (Correct!)\n"
-                f"🎁 ได้คะแนน (Points): +{total_gain}\n"
-                f"🏆 คะแนนสะสม (Score): {player['score']}\n"
-                f"🏅 ระดับ (Rank): {rank_th} ({rank_en})\n"
-                f"🔥 Combo: x{player['combo']}\n"
-                f"📅 ภารกิจวันนี้ (Daily Mission): {player['daily_correct']}/5\n"
-                f"🔥 Streak: {player['streak']} วัน (days)\n\n"
-                f"{progress}"
-                f"{combo_text}"
-                f"{milestone_message}"
-                f"{rank_text}"
-                f"{badge_text}\n\n"
+                f"🎁 +{total_gain} | 🏆 Score: {player['score']}\n"
+                f"🏅 {rank_th} ({rank_en}) | 🔥 Combo x{player['combo']}\n"
+                f"📅 ภารกิจวันนี้: {player['daily_correct']}/5 ✅ | 🔥 Streak: {player['streak']} วัน (day)\n"
+                f"{progress_text}"
+                f"{badge_text}"
+                f"{milestone_message}\n\n"
                 f"🧩 โจทย์ถัดไป (Next puzzle): {' '.join(map(str, new_puzzle))}\n\n"
                 f"พิมพ์สมการมาได้เลยนะคะ\n"
                 f"Type your equation when you're ready.\n\n"
-                f"พิมพ์ “คำใบ้” เพื่อขอคำใบ้, “พักก่อน” เพื่อพัก หรือ “ข้าม” เพื่อเปลี่ยนโจทย์ค่ะ\n"
+                f"พิมพ์ “คำใบ้” เพื่อขอคำใบ้, “พัก” เพื่อพักก่อน หรือ “ข้าม” เพื่อเปลี่ยนโจทย์ค่ะ\n"
                 f"Type “hint” for a clue, “break” to take a break, or “skip” for a new puzzle."
             )
 
