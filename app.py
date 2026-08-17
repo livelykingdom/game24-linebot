@@ -666,18 +666,22 @@ def handle_message(event):
         return
 
     # =====================================================
-    # NO CURRENT PUZZLE (อัปเดตฟอร์มข้อความต้อนรับใหม่)
+    # NO CURRENT PUZZLE (ฟอร์มข้อความต้อนรับใหม่ล่าสุด)
     # =====================================================
     if player.get("current_puzzle") is None:
         reply = (
-            "🌟 ยินดีต้อนรับสู่ เกม 24! ลับสมอง ประลองปัญญา\n\n"
-            "กติกา: ใช้ตัวเลข 4 ตัว + − × ÷ ให้ได้ 24\n\n"
-            "พิมพ์ “เล่น” เพื่อเริ่มเกมได้เลยค่ะ!\n\n"
-            "ⓘ หากไม่มีการเล่นต่อเนื่องเกิน 15 นาที ระบบจะรีเซ็ตสถานะ กรุณาพิมพ์ “เล่น” เพื่อเริ่มอีกครั้งค่ะ\n\n"
-            "🌟 Welcome to Game 24! Challenge your mind!\n\n"
-            "Rules: Use all 4 numbers with + − × ÷ to make 24.\n\n"
-            "Type “Play” to start the game!\n\n"
-            "ⓘ If there is no activity for more than 15 minutes, the game will reset. Please type “Play” to start again."
+            "🧠 ยินดีต้อนรับสู่ เกม 24! ลับสมอง ประลองปัญญา\n\n"
+            "📌 กติกา: ใช้ตัวเลข 4 ตัว บวก ลบ คูณ หรือหาร ให้ได้ 24\n"
+            "➕ ➖ ✖️ ➗ หรือใช้ + − * / ได้เช่นกัน\n\n"
+            "🎮 พิมพ์ “เล่น” เพื่อเริ่มเกมได้เลยค่ะ!\n\n"
+            "⏱️ หากไม่มีการเล่นต่อเนื่องเกิน 15 นาที ระบบจะรีเซ็ตสถานะ\n"
+            "🔄 กรุณาพิมพ์ “เล่น” เพื่อเริ่มอีกครั้งนะคะ\n\n"
+            "🧠 Welcome to Game 24! Challenge your mind!\n\n"
+            "📌 Rules: Use all 4 numbers with addition, subtraction, multiplication, or division to make 24.\n\n"
+            "➕ ➖ ✖️ ➗ You can also use + − * /\n\n"
+            "🎮 Type “Play” to start the game!\n\n"
+            "⏱️ If there is no activity for more than 15 minutes, the game will reset.\n"
+            "🔄 Please type “Play” to start again."
         )
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
