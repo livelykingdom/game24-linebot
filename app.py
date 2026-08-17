@@ -419,12 +419,10 @@ def random_message(player, messages):
 
 
 # =========================================================
-# HINT GENERATOR (สร้างคำใบ้เบื้องต้น 1 ขั้นตอน)
+# HINT GENERATOR
 # =========================================================
 
 def get_hint(puzzle):
-    # มองหาคู่เลขที่คูณหรือบวกกันแล้วลงตัวเพื่อเป็นไกด์ไลน์เบื้องต้น
-    p = sorted(puzzle)
     return (
         f"💡 คำใบ้ค่ะ\n"
         f"ลองมองหาคู่ตัวเลขจากชุดนี้ ({' '.join(map(str, puzzle))}) "
@@ -544,8 +542,8 @@ def format_puzzle_message(puzzle, player):
         f"🏅 Rank: {rank_th} ({rank_en}) | 🔥 Combo x{player['combo']}\n\n"
         f"พิมพ์สมการมาได้เลยนะคะ\n"
         f"Type your equation when you're ready.\n\n"
-        f"พิมพ์ “คำใบ้” เพื่อขอความช่วยเหลือ, “พักก่อน” เพื่อพัก หรือ “ข้าม” เพื่อเปลี่ยนโจทย์ค่ะ\n"
-        f"Type “hint” for a clue, “break” to take a break, or “skip” to change the puzzle."
+        f"พิมพ์ “คำใบ้” เพื่อขอคำใบ้, “พักก่อน” เพื่อพัก หรือ “ข้าม” เพื่อเปลี่ยนโจทย์ค่ะ\n"
+        f"Type “hint” for a clue, “break” to take a break, or “skip” for a new puzzle."
     )
 
 
@@ -654,7 +652,7 @@ def handle_message(event):
         if player["current_puzzle"] is not None:
             puzzle = get_next_puzzle(player["score"])
             player["current_puzzle"] = puzzle
-            player["combo"] = 0  # รีเซ็ตคอมโบเมื่อข้าม
+            player["combo"] = 0
             save_data()
             reply = (
                 f"🔄 เปลี่ยนโจทย์เรียบร้อยค่ะ! (Puzzle skipped!)\n\n"
@@ -763,8 +761,8 @@ def handle_message(event):
                 f"🧩 โจทย์ถัดไป (Next puzzle): {' '.join(map(str, new_puzzle))}\n\n"
                 f"พิมพ์สมการมาได้เลยนะคะ\n"
                 f"Type your equation when you're ready.\n\n"
-                f"พิมพ์ “คำใบ้” เพื่อขอความช่วยเหลือ, “พักก่อน” เพื่อพัก หรือ “ข้าม” เพื่อเปลี่ยนโจทย์ค่ะ\n"
-                f"Type “hint” for a clue, “break” to take a break, or “skip” to change the puzzle."
+                f"พิมพ์ “คำใบ้” เพื่อขอคำใบ้, “พักก่อน” เพื่อพัก หรือ “ข้าม” เพื่อเปลี่ยนโจทย์ค่ะ\n"
+                f"Type “hint” for a clue, “break” to take a break, or “skip” for a new puzzle."
             )
 
             save_data()
