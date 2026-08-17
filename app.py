@@ -176,25 +176,22 @@ def count_solutions(values):
 
 @lru_cache(maxsize=None)
 def can_make_24(values):
-    """ ตรวจสอบว่าชุดตัวเลขนี้สามารถทำเป็น 24 ได้หรือไม่ """
     return count_solutions(tuple(sorted(values))) > 0
 
 
 def find_hint_move(puzzle):
     """
-    ระบบ Solver อัตโนมัติ: ค้นหาก้าวแรก (First Step) ที่ทำให้ยังสามารถไปต่อจนถึง 24 ได้จริง
-    โดยเลือกรูปแบบการกระทำที่เป็นธรรมชาติ เช่น คูณ หรือ บวก ก่อน
+    ระบบ Solver อัตโนมัติ: ค้นหาก้าวแรก (First Step) โดยเลือกจับคู่ตัวเลขที่มีอยู่จริงในโจทย์
+    และตรวจสอบว่าหากทำคู่รอดี้แล้ว ส่วนที่เหลือยังสามารถแก้เป็น 24 ได้จริงไหม
     """
     puzzle_list = list(puzzle)
     
-    # ลองสํารวจคู่ตัวเลขทั้งหมดเพื่อหาว่าคู่ไหนทำก้าวแรกแล้วส่วนที่เหลือยังสามารถแก้เป็น 24 ได้
     for i in range(len(puzzle_list)):
         for j in range(i + 1, len(puzzle_list)):
             a = puzzle_list[i]
             b = puzzle_list[j]
             rest = [puzzle_list[k] for k in range(len(puzzle_list)) if k not in (i, j)]
 
-            # รวบรวมความเป็นไปได้ของก้าวแรก
             moves = [
                 (a * b, f"{a} × {b}"),
                 (a + b, f"{a} + {b}"),
@@ -208,7 +205,6 @@ def find_hint_move(puzzle):
             for val, desc in moves:
                 if val < 0:
                     continue
-                # ตรวจสอบว่าหากทำก้าวนี้แล้ว ตัวเลขที่เหลือ + ผลลัพธ์ สามารถแก้เป็น 24 ได้จริงไหม
                 if can_make_24(tuple(sorted(rest + [val]))):
                     return desc, rest
 
@@ -216,7 +212,6 @@ def find_hint_move(puzzle):
 
 
 def make_hint_message(player, puzzle):
-    """ สร้างข้อความ Hint ทั้งภาษาไทยและอังกฤษ ตามกติกา """
     if not puzzle:
         return "💡 ตอนยังไม่มีโจทย์นะคะ พิมพ์ ‘เล่น’ เพื่อเริ่มเล่นก่อนค่ะ\n💡 No active puzzle. Type 'play' to start."
 
@@ -228,18 +223,15 @@ def make_hint_message(player, puzzle):
             "Keep trying, you can do it!"
         )
 
-    # ทำการทำเครื่องหมายว่าใช้ Hint แล้ว (ไม่หักคะแนน แต่จะบล็อกไม่ให้ใช้ซ้ำในโจทย์เดิม)
     player["hint_used"] = True
-
-    # ค้นหาก้าวแรกจาก Solver
     step_desc, rest_nums = find_hint_move(tuple(puzzle))
 
     if step_desc:
         th_text = f"ลองนำ {step_desc} มาคำนวณกันก่อนนะคะ แล้วลองคิดต่อจากเลขที่เหลือค่ะ"
         en_text = f"Try {step_desc} first, then work with the remaining numbers."
     else:
-        th_text = "ลองมองหาตัวเลข 2 ตัวที่สามารถนำมาคำนวณให้เข้าใกล้ 24 ก่อนนะคะ แล้วค่อยคิดต่อจากเลขที่เหลือค่ะ"
-        en_text = "Try finding two numbers that can help you get closer to 24, then work with the remaining numbers."
+        th_text = f"ลองมองหาคู่ตัวเลขจากชุดนี้ ({' '.join(map(str, puzzle))}) มาคูณหรือบวกกันให้ได้ผลลัพธ์ดีๆ ก่อน แล้วค่อยคิดต่อจากเลขที่เหลือค่ะ"
+        en_text = f"Try combining numbers from ({' '.join(map(str, puzzle))}) first, then work with the remaining numbers."
 
     return (
         f"💡 คำใบ้ค่ะ\n{th_text}\n\n"
@@ -298,7 +290,7 @@ def create_default_player():
         "personal_best_daily_score": 0,
         "badges": [],
         "current_puzzle": None,
-        "hint_used": False,  # เพิ่มสถานะการใช้ Hint
+        "hint_used": False,
         "last_encouragement": ""
     }
 
@@ -332,7 +324,6 @@ def load_data():
 def get_player(user_id):
     if user_id not in players:
         players[user_id] = create_default_player()
-    # ป้องกันข้อมูลเก่าที่ยังไม่มีคีย์ hint_used
     if "hint_used" not in players[user_id]:
         players[user_id]["hint_used"] = False
     return players[user_id]
@@ -438,7 +429,7 @@ def random_message(player, messages):
 
 
 # =========================================================
-# SAFE EQUATION EVALUATOR
+# SAFE EQUATION EVALUATOR (ปรับปรุงให้รองรับตัวเลข 1 และโครงสร้างซับซ้อนขึ้น)
 # =========================================================
 
 def evaluate_expression(expression, puzzle):
@@ -461,10 +452,7 @@ def evaluate_expression(expression, puzzle):
             if not isinstance(node.value, int):
                 raise ValueError("ใช้เฉพาะจำนวนเต็มนะคะ")
             used_numbers.append(node.value)
-            value = Fraction(node.value, 1)
-            if value < 0:
-                raise ValueError("ห้ามมีค่าติดลบนะคะ")
-            return value
+            return Fraction(node.value, 1)
         if isinstance(node, ast.BinOp):
             left = visit(node.left)
             right = visit(node.right)
@@ -476,17 +464,22 @@ def evaluate_expression(expression, puzzle):
                 result = left / right
             else:
                 raise ValueError("มีเครื่องหมายที่ไม่อนุญาตค่ะ")
+            
+            # ยืดหยุ่นเงื่อนไข: อนุญาตผลลัพธ์ระหว่างทางเป็นบวกหรือศูนย์ได้ และเป็นเศษส่วนได้ชั่วคราวแต่ผลรวมสุดท้ายต้องลงตัว
             if result < 0: raise ValueError("สมการมีค่าติดลบค่ะ")
-            if result.denominator != 1: raise ValueError("ระหว่างคำนวณห้ามมีเศษส่วนนะคะ")
             return result
         raise ValueError("ไม่สามารถใช้รูปแบบนี้ได้นะคะ")
 
     result = visit(tree)
+    
     if sorted(used_numbers) != sorted(puzzle):
         raise ValueError("ใช้เลขไม่ตรงกับโจทย์ค่ะ")
     if len(used_numbers) != 4:
         raise ValueError("ต้องใช้เลขให้ครบทั้ง 4 ตัวนะคะ")
-    return result
+    if result.denominator != 1:
+        raise ValueError("ผลลัพธ์สุดท้ายต้องเป็นจำนวนเต็มนะคะ")
+
+    return int(result)
 
 
 # =========================================================
@@ -583,7 +576,7 @@ def handle_message(event):
         register_activity(player)
         puzzle = get_next_puzzle(player["score"])
         player["current_puzzle"] = puzzle
-        player["hint_used"] = False  # รีเซ็ตสถานะการใช้ Hint เมื่อได้โจทย์ใหม่
+        player["hint_used"] = False
         save_data()
         line_bot_api.reply_message(
             event.reply_token,
@@ -619,7 +612,7 @@ def handle_message(event):
             puzzle = get_next_puzzle(player["score"])
             player["current_puzzle"] = puzzle
             player["combo"] = 0
-            player["hint_used"] = False  # รีเซ็ตสถานะ Hint สำหรับโจทย์ใหม่
+            player["hint_used"] = False
             save_data()
             reply = (
                 f"🔄 เปลี่ยนโจทย์เรียบร้อยค่ะ! (Puzzle skipped!)\n\n"
@@ -656,7 +649,6 @@ def handle_message(event):
             player["correct_total"] += 1
             player["daily_correct"] += 1
             
-            # กติกา: หากใช้ Hint แล้ว Combo จะไม่เพิ่ม แต่ยังได้คะแนนปกติ
             if player.get("hint_used", False):
                 combo_bonus = 0
             else:
@@ -692,7 +684,6 @@ def handle_message(event):
             update_badges(player)
             rank_th, rank_en = get_rank(player["score"])
 
-            # แจกโจทย์ใหม่ และรีเซ็ตสถานะ hint_used
             new_puzzle = get_next_puzzle(player["score"])
             player["current_puzzle"] = new_puzzle
             player["hint_used"] = False 
