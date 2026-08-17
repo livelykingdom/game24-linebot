@@ -662,7 +662,7 @@ def handle_message(event):
         return
 
     # =====================================================
-    # NO CURRENT PUZZLE (พร้อมประกาศแจ้งเตือน 15 นาที)
+    # NO CURRENT PUZZLE (ฟอร์มข้อความต้อนรับตามที่ขอ)
     # =====================================================
     if player.get("current_puzzle") is None:
         reply = (
@@ -670,12 +670,12 @@ def handle_message(event):
             "พิมพ์ “เล่น” เพื่อเริ่มเล่นเกม 24 ค่ะ\n"
             "พิมพ์ “คะแนน” เพื่อดู Rank และคะแนนนะคะ\n"
             "พิมพ์ “เหรียญ” เพื่อดูเหรียญที่สะสมค่ะ\n\n"
-            "📢 หากไม่มีการเล่นต่อเนื่องเกิน 15 นาที ระบบจะรีเซ็ตสถานะ สามารถพิมพ์ “เล่น” หรือ “play” เพื่อเริ่มเล่นต่อได้ค่ะ\n"
-            "If there is no gameplay for more than 15 minutes, the system will reset the game status. Type “play” to continue playing.\n\n"
+            "📢 หากไม่มีการเล่นต่อเนื่องเกิน 15 นาที ระบบจะรีเซ็ตสถานะ สามารถพิมพ์ “เล่น” หรือ “play” เพื่อเริ่มเล่นต่อได้ค่ะ\n\n"
             "Hello! 🌟 Ready to sharpen your mind?\n\n"
             "Type “play” to start playing Game 24.\n"
             "Type “score” to check your Rank and points.\n"
-            "Type “badges” to view your collected badges."
+            "Type “badges” to view your collected badges.\n\n"
+            "📢 If there is no gameplay for more than 15 minutes, the system will reset the game status. Type “play” to continue playing."
         )
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
