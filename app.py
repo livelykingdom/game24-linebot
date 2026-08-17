@@ -31,7 +31,7 @@ SAVE_FILE = "game_data.json"
 
 
 # =========================================================
-# PUZZLES (ครบถ้วน 404 ข้อ)[cite: 3]
+# PUZZLES (ครบถ้วน 404 ข้อ)
 # =========================================================
 
 PUZZLES = [
@@ -494,7 +494,7 @@ def random_message(player, messages):
 
 
 # =========================================================
-# SAFE EQUATION EVALUATOR (ใช้ตัวตรวจเช็กจากโค้ดเก่าที่เสถียร 100%)[cite: 3]
+# SAFE EQUATION EVALUATOR (ใช้ตัวตรวจเช็กจากโค้ดเก่าที่เสถียร 100%)
 # =========================================================
 
 def evaluate_expression(expression, puzzle):
@@ -707,7 +707,7 @@ def handle_message(event):
             puzzle = get_next_puzzle(player["score"])
             player["current_puzzle"] = puzzle
             player["combo"] = 0
-            player["hint_used"] = False  # รีเซ็ตสิทธิ์คำใบ้ฟรีสำหรับโจทย์ข้อใหม่[cite: 3]
+            player["hint_used"] = False
             save_data()
             reply = (
                 f"🔄 เปลี่ยนโจทย์เรียบร้อยค่ะ! (Puzzle skipped!)\n\n"
@@ -761,7 +761,6 @@ def handle_message(event):
             player["correct_total"] += 1
             player["daily_correct"] += 1
             
-            # ถ้าใช้ Hint คอมโบจะไม่เพิ่ม แต่ได้คะแนนปกติ[cite: 3]
             if player.get("hint_used", False):
                 combo_bonus = 0
             else:
@@ -804,7 +803,6 @@ def handle_message(event):
                 )
 
             total_gain = base_score + combo_bonus + milestone_bonus
-            old_score = player["score"]
 
             player["score"] += total_gain
             player["daily_score"] += total_gain
@@ -813,7 +811,6 @@ def handle_message(event):
                 player["personal_best_daily_score"] = player["daily_score"]
 
             new_badges = update_badges(player)
-            old_rank = get_rank(old_score)
             rank_th, rank_en = get_rank(player["score"])
 
             new_puzzle = get_next_puzzle(player["score"])
@@ -829,9 +826,8 @@ def handle_message(event):
 
             reply = (
                 f"{encouragement}\n\n"
-                f"⭐ Score +{total_gain} | 🏆 Total Score: {player['score']}\n"
+                f"⭐ Score +{total_gain} | 🏆 Total : {player['score']}\n"
                 f"🏅 {rank_th} ({rank_en}) | 🔥 Combo x{player['combo']}\n"
-                f"📅 ภารกิจวันนี้: {player['daily_correct']}/5 ✅ | 🔥 Streak: {player['streak']} วัน (day)\n"
                 f"{progress_text}"
                 f"{badge_text}"
                 f"{milestone_message}\n\n"
