@@ -400,7 +400,7 @@ def get_badge_text(player):
 
 
 # =========================================================
-# ENCOURAGEMENT
+# ENCOURAGEMENT (เพิ่มข้อความชมเชยและให้กำลังใจหลากหลายยิ่งขึ้น)
 # =========================================================
 
 CORRECT_MESSAGES = [
@@ -411,16 +411,19 @@ CORRECT_MESSAGES = [
     "✅ ถูกต้องค่ะ! Correct!\n🔥 สุดยอดค่ะ! วันนี้สมองกำลังร้อนแรงเลย Awesome!",
     "✅ ถูกต้องค่ะ! Correct!\n🚀 ทำได้เยี่ยมมาก! ไปลุยข้อต่อไปกันเลย Great job!",
     "✅ ถูกต้องค่ะ! Correct!\n💡 คิดได้เฉียบขาดและรวดเร็วมาก Smart and quick thinking!",
-    "✅ ถูกต้องค่ะ! Correct!\n🏆 สุดยอดนักคิด! เก่งมากๆ เลยค่ะ Absolute math star!"
+    "✅ ถูกต้องค่ะ! Correct!\n🏆 สุดยอดนักคิด! เก่งมากๆ เลยค่ะ Absolute math star!",
+    "✨ เก่งมากๆ เลยค่ะ! สมองใสปิ๊งเลยวันนี้\n✨ Amazing! Your mind is sparkling today!",
+    "🎯 ยอดเยี่ยมไปเลย! แก้โจทย์ข้อนี้ได้เฉียบขาดมาก\n🎯 Outstanding! You solved that flawlessly!"
 ]
 
 WRONG_MESSAGES = [
-    "💪 ยังไม่ใช่คำตอบนี้นะคะ ลองใหม่อีกครั้งค่ะ\n💪 Not quite, try again!",
-    "🧠 เกือบแล้วค่ะ! ลองจัดกลุ่มตัวเลขใหม่ดูนะคะ\n🧠 Almost! Try grouping the numbers differently.",
-    "🌱 ไม่เป็นไรเลยค่ะ ลองคิดอีกมุมดูนะคะ\n🌱 It's okay, try looking from another angle.",
-    "✨ ใกล้ความจริงแล้วค่ะ ลองสลับเครื่องหมายดูนะคะ\n✨ So close! Try swapping operators.",
-    "💡 ยังมีทางอื่นอยู่นะคะ สู้ๆ ค่ะ\n💡 There's another way. Keep going!",
-    "👏 อย่าเพิ่งยอมแพ้นะคะ ลองใหม่อีกนิดค่ะ\n👏 Don't give up, give it another shot!"
+    "💪 ยังไม่ใช่คำตอบนี้นะคะ ลองใหม่อีกครั้งค่ะ สู้ๆ!\n💪 Not quite, try again!",
+    "🧠 เกือบแล้วค่ะ! ลองจัดกลุ่มตัวเลขใหม่ดูนะ คุณทำได้อยู่แล้ว\n🧠 Almost! Try grouping numbers differently.",
+    "🌱 ไม่เป็นไรเลยค่ะ ลองคิดอีกมุมดูนะ ค่อยๆ คิดไม่ต้องรีบจ้า\n🌱 It's okay, try looking from another angle.",
+    "✨ ใกล้ความจริงแล้วค่ะ ลองสลับเครื่องหมายดูนะ\n✨ So close! Try swapping operators.",
+    "💡 ยังมีทางอื่นอยู่นะคะ อย่าเพิ่งยอมแพ้นะ\n💡 There's another way. Keep going!",
+    "👏 พยายามได้ดีมากค่ะ ลองใหม่อีกนิด รับรองว่าได้แน่นอน\n👏 Great effort, give it another shot!",
+    "🌟 ผิดเป็นครู ลองมองภาพรวมของตัวเลขใหม่อีกรอบนะจ๊ะ\n🌟 Every mistake helps you grow, try again!"
 ]
 
 
@@ -613,9 +616,9 @@ def handle_message(event):
         return
 
     # =====================================================
-    # PLAY (เล่น / play)
+    # PLAY (รองรับทั้ง เล่น, play, Play)
     # =====================================================
-    if text_lower in ["เล่น", "play"]:
+    if text_lower in ["เล่น", "play", "เล่นเกม"]:
         register_activity(player)
         if player.get("current_puzzle") is None:
             puzzle = get_unique_puzzle(player)
@@ -665,7 +668,7 @@ def handle_message(event):
         return
 
     # =====================================================
-    # NO CURRENT PUZZLE (ฟอร์มข้อความต้อนรับใหม่)
+    # NO CURRENT PUZZLE
     # =====================================================
     if player.get("current_puzzle") is None:
         reply = (
